@@ -32,6 +32,6 @@ curl --include \
      --data-binary "{
     \"caller\":\"$caller\",
     \"called\":\"$1\",
-    \"audio\":\"Alerta: $2 $3 $4\"
+    \"audio\":\"$2\"
 }" \
 'https://api.nvoip.com.br/v1/torpedovoz'
