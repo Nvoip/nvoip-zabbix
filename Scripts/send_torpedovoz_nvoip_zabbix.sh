@@ -22,8 +22,8 @@ token_auth="TOKEN NVOIP"
 # English: Your Nvoip username (extension). It does not have to be online.
 caller="USUÁRIO NVOIP"
 
-#$1, $2, $3 e $4 são os parâmetros, em ordem, que você define no seu Servidor Zabbix. O $1 é o número que irá receber a chamada. Você pode reduzir, alterar a ordem ou acrescentar mais parâmetros.
-#English: $1, $2, $3 and $4 are parameters, in order, that you set in your Zabbix Server. $ 1 is the number that will receive the call. You can reduce, change the order or add more parameters.
+#$1 e $2 são os parâmetros, em ordem, que você define no seu Servidor Zabbix. O $1 é o número que irá receber a chamada. Você pode reduzir, alterar a ordem ou acrescentar mais parâmetros.
+#English: $1 and $2 are the parameters, in order, that you set in your Zabbix Server. $ 1 is the number that will receive the call. You can reduce, change the order or add more parameters.
 
 curl --include \
      --request POST \
