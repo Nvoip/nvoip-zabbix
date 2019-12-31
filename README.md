@@ -55,8 +55,6 @@ Nome Script: send_torpedovoz_nvoip_zabbix.sh
 Parâmetro:  
 {ALERT.SENDTO}  
 {ALERT.SUBJECT}  
-{ALERT.MESSAGE}  
-{HOST.NAME1}  
 Ativo: Sim  
 
 4. Vá em Configurações > Usuários, selecione o usuário que irá receber o SMS. Clique em Mídia, Adicionar. Configure com os dados abaixo:  
@@ -124,8 +122,6 @@ Script Name: send_torpedovoz_nvoip_zabbix.sh
 Parameter:  
 {ALERT.SENDTO}  
 {ALERT.SUBJECT}  
-{ALERT.MESSAGE}  
-{HOST.NAME1}  
 Active: Yes  
 
 4. Go to Settings> Users, select the user who will receive SMS. Click Media, Add. Configure with the data below:  
