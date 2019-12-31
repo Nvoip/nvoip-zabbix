@@ -16,17 +16,17 @@ Altere a linha token_auth com o seu Token da Nvoip.
 
 2. Ajuste as permissões do arquivo com os comandos: chown zabbix:zabbix (ou o usuário que definiu pro Zabbix) e chmod 777.
 
-3. Acesse seu Zabbix, vá em Administração > Tipo de Mídia e clique em Criar Tipo de Mídia e use as configurações abaixo:
+3. Acesse seu Zabbix, vá em Administração > Tipo de Mídia e clique em Criar Tipo de Mídia e use as configurações abaixo:  
 
-Nome: SMS Nvoip
-Tipo: Script
-Nome Script: send_sms_nvoip.sh
-Parâmetro: 
-{ALERT.SENDTO}
-{ALERT.SUBJECT}
-{ALERT.MESSAGE}
-{HOST.NAME1}
-Ativo: Sim
+Nome: SMS Nvoip  
+Tipo: Script  
+Nome Script: send_sms_nvoip.sh  
+Parâmetro:  
+{ALERT.SENDTO}  
+{ALERT.SUBJECT}  
+{ALERT.MESSAGE}  
+{HOST.NAME1}  
+Ativo: Sim  
 
 4. Vá em Configurações > Usuários, selecione o usuário que irá receber o SMS. Clique em Mídia, Adicionar. Configure com os dados abaixo:
 Tipo: SMS Nvoip
@@ -57,15 +57,15 @@ Change the token_auth line with your Nvoip Token.
 
 3. Access your Zabbix, go to Administration> Media Type and click Create Media Type and use the settings below:
 
-Name: SMS Nvoip
-Type: Script
-Script Name: send_sms_nvoip.sh
-Parameter:
-{ALERT.SENDTO}
-{ALERT.SUBJECT}
-{ALERT.MESSAGE}
-{HOST.NAME1}
-Active: Yes
+Name: SMS Nvoip  
+Type: Script  
+Script Name: send_sms_nvoip.sh  
+Parameter:  
+{ALERT.SENDTO}  
+{ALERT.SUBJECT}  
+{ALERT.MESSAGE}  
+{HOST.NAME1}  
+Active: Yes  
 
 4. Go to Settings> Users, select the user who will receive SMS. Click Media, Add. Configure with the data below:
 Type: SMS Nvoip
