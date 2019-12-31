@@ -11,7 +11,7 @@ Scripts para uso com a plataforma Zabbix integrada com a API da Nvoip.
 Este script irá disparar um SMS quando uma Trigger do Zabbix for acionada. Para isso, é necessário também configurar uma Midia no Zabbix.
 Como usar (Testado no Zabbix 3.4): 
 
-1. Copie o arquivo send_sms_nvoip.sh no diretório de Scripts de Alerta do Zabbix (No nosso caso ficou em /usr/lib/zabbix/alertscripts). Para consultar onde é este diretório na sua versão do Zabbix acesse o arquivo zabbix_server.conf (Geralmente em /etc/zabbix/zabbix_server.conf) e procure a linha: AlertScriptPath.
+1. Copie o arquivo send_sms_nvoip_zabbix.sh no diretório de Scripts de Alerta do Zabbix (No nosso caso ficou em /usr/lib/zabbix/alertscripts). Para consultar onde é este diretório na sua versão do Zabbix acesse o arquivo zabbix_server.conf (Geralmente em /etc/zabbix/zabbix_server.conf) e procure a linha: AlertScriptPath.
 Altere a linha token_auth com o seu Token da Nvoip.
 
 2. Ajuste as permissões do arquivo com os comandos: chown zabbix:zabbix (ou o usuário que definiu pro Zabbix) e chmod 777.
@@ -50,7 +50,7 @@ PHP language scripts and libraries for use with the Nvoip API.
 This script will trigger an SMS when a Zabbix Trigger is triggered. For this, it is also necessary to configure a media in Zabbix.
 How to use it (Tested on Zabbix 3.4):
 
-1. Copy the send_sms_nvoip.sh file to the Zabbix Alert Scripts directory (In our case it was / usr / lib / zabbix / alertscripts). To see where this directory is in your version of Zabbix go to the zabbix_server.conf file (usually /etc/zabbix/zabbix_server.conf) and look for the line: AlertScriptPath.
+1. Copy the send_sms_nvoip_zabbix.sh file to the Zabbix Alert Scripts directory (In our case it was / usr/lib/zabbix/alertscripts). To see where this directory is in your version of Zabbix go to the zabbix_server.conf file (usually /etc/zabbix/zabbix_server.conf) and look for the line: AlertScriptPath.
 Change the token_auth line with your Nvoip Token.
 
 2. Set the file permissions with the commands: chown zabbix: zabbix (or the user who set it for Zabbix) and chmod 777.
