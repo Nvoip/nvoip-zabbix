@@ -17,6 +17,7 @@ Altere a linha token_auth com o seu Token da Nvoip.
 2. Ajuste as permissões do arquivo com os comandos: chown zabbix:zabbix (ou o usuário que definiu pro Zabbix) e chmod 777.
 
 3. Acesse seu Zabbix, vá em Administração > Tipo de Mídia e clique em Criar Tipo de Mídia e use as configurações abaixo:
+
 Nome: SMS Nvoip
 Tipo: Script
 Nome Script: send_sms_nvoip.sh
