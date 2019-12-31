@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#Nvoip
+#Nvoip - SMS
 
 #Copyright (C) 2020 Nvoip Plataforma Telefonia Ltda
 #Leandro Campos <https://www.linkedin.com/in/leandro-campos/>
