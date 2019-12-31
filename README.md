@@ -28,12 +28,12 @@ Parâmetro:
 {HOST.NAME1}  
 Ativo: Sim  
 
-4. Vá em Configurações > Usuários, selecione o usuário que irá receber o SMS. Clique em Mídia, Adicionar. Configure com os dados abaixo:
-Tipo: SMS Nvoip
-Enviar para: (Coloque aqui o celular que irá receber o SMS (Atualmente somente celulares brasileiros). Formato: DDD+Número. Exemplo: 11911112222.
-Ativo quando: 1-7,00:00-24:00 (Ou de acordo com a sua preferência)
-Usar se severidade: Marque as opções de severidade da trigger que irá disparar o SMS.
-Ativo: Sim
+4. Vá em Configurações > Usuários, selecione o usuário que irá receber o SMS. Clique em Mídia, Adicionar. Configure com os dados abaixo:  
+Tipo: SMS Nvoip  
+Enviar para: (Coloque aqui o celular que irá receber o SMS (Atualmente somente celulares brasileiros). Formato: DDD+Número. Exemplo: 11911112222.  
+Ativo quando: 1-7,00:00-24:00 (Ou de acordo com a sua preferência)  
+Usar se severidade: Marque as opções de severidade da trigger que irá disparar o SMS.  
+Ativo: Sim  
 
 5. Pronto. Agora você irá receber o SMS.
 
@@ -67,11 +67,11 @@ Parameter:
 {HOST.NAME1}  
 Active: Yes  
 
-4. Go to Settings> Users, select the user who will receive SMS. Click Media, Add. Configure with the data below:
-Type: SMS Nvoip
-Send to: (Enter here the phone that will receive the SMS (Currently only Brazilian mobile phones.) Format: DDD + Number. Example: 11911112222.
-Active when: 1-7,00:00-24:00 (Or according to your preference)
-Use if severity: Check the trigger severity options that will trigger SMS.
-Active: Yes
+4. Go to Settings> Users, select the user who will receive SMS. Click Media, Add. Configure with the data below:  
+Type: SMS Nvoip  
+Send to: (Enter here the phone that will receive the SMS (Currently only Brazilian mobile phones.) Format: DDD + Number. Example: 11911112222.  
+Active when: 1-7,00:00-24:00 (Or according to your preference)  
+Use if severity: Check the trigger severity options that will trigger SMS.  
+Active: Yes  
 
 5. Ready. You will now receive the SMS.
