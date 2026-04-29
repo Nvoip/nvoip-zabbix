@@ -1,12 +1,12 @@
 # nvoip-zabbix
 
-Integracao do Zabbix com a API v2 da Nvoip para alertas por SMS e torpedo de voz.
+Integração do Zabbix com a API v2 da Nvoip para alertas por SMS e torpedo de voz.
 
 ## O que mudou
 
 Os scripts antigos usavam a API v1 com `token_auth`.
 
-Esta versao ja usa:
+Esta versão já usa:
 
 - OAuth da API v2
 - `numbersip` + `user-token`
@@ -20,21 +20,29 @@ Esta versao ja usa:
 - `Scripts/nvoip_zabbix_common.sh`
 - `templates/media-types.md`
 
-## Variaveis de ambiente necessarias
+## Variáveis de ambiente necessárias
 
-Defina no host do Zabbix ou no ambiente do servico:
+Defina no host do Zabbix ou no ambiente do serviço:
 
 ```bash
 export NVOIP_NUMBERSIP="seu_numbersip"
 export NVOIP_USER_TOKEN="seu_user_token"
+export NVOIP_OAUTH_CLIENT_ID="seu_client_id"
+export NVOIP_OAUTH_CLIENT_SECRET="seu_client_secret"
 export NVOIP_CALLER="1049"
 ```
 
-## Instalacao
+Se a sua operacao ja trabalha com o header serializado, voce tambem pode fornecer:
+
+```bash
+export NVOIP_OAUTH_BASIC_AUTH="basic_auth_base64"
+```
+
+## Instalação
 
 1. Copie os scripts para o `AlertScriptsPath` do seu Zabbix.
-2. Ajuste permissoes para o usuario do servico Zabbix.
-3. Garanta que `curl` e `sed` estejam disponiveis.
+2. Ajuste permissões para o usuário do serviço Zabbix.
+3. Garanta que `curl` e `sed` estejam disponíveis.
 4. Configure os Media Types com base em `templates/media-types.md`.
 
 ## Media Types
@@ -42,7 +50,7 @@ export NVOIP_CALLER="1049"
 ### SMS Nvoip
 
 - Script: `send_sms_nvoip_zabbix.sh`
-- Parametros:
+- Parâmetros:
   - `{ALERT.SENDTO}`
   - `{ALERT.SUBJECT}`
   - `{ALERT.MESSAGE}`
@@ -51,17 +59,18 @@ export NVOIP_CALLER="1049"
 ### Torpedo de Voz Nvoip
 
 - Script: `send_torpedovoz_nvoip_zabbix.sh`
-- Parametros:
+- Parâmetros:
   - `{ALERT.SENDTO}`
   - `{ALERT.SUBJECT}`
 
-## Observacoes
+## Observações
 
-- o token OAuth e gerado em cada execucao do script
-- isso simplifica a configuracao e evita depender de token manual expirado
-- para uso muito intenso, vale considerar cache local de token com controle de expiracao
+- o token OAuth é gerado em cada execução do script
+- isso simplifica a configuração e evita depender de token manual expirada
+- o caminho recomendado agora é `client_id` + `client_secret`; o `NVOIP_OAUTH_BASIC_AUTH` ficou apenas como compatibilidade
+- para uso muito intenso, vale considerar cache local de token com controle de expiração
 
-## Documentacao oficial
+## Documentação oficial
 
 - https://nvoip.docs.apiary.io/
 - https://www.nvoip.com.br/api
