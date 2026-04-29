@@ -1,6 +1,6 @@
 # nvoip-zabbix
 
-Integração do Zabbix com a API v2 da Nvoip para alertas por SMS e torpedo de voz.
+Integração oficial da [Nvoip](https://www.nvoip.com.br/) para alertas do Zabbix via API v2 com SMS e torpedo de voz.
 
 ## O que mudou
 
