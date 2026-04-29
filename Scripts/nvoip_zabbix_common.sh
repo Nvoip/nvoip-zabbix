@@ -21,13 +21,8 @@ nvoip_require_zabbix_config() {
 }
 
 nvoip_resolve_basic_auth() {
-  if [ -n "${NVOIP_OAUTH_BASIC_AUTH:-}" ]; then
-    printf '%s\n' "$NVOIP_OAUTH_BASIC_AUTH"
-    return 0
-  fi
-
   if [ -z "${NVOIP_OAUTH_CLIENT_ID:-}" ] || [ -z "${NVOIP_OAUTH_CLIENT_SECRET:-}" ]; then
-    printf 'Missing required OAuth configuration. Use NVOIP_OAUTH_CLIENT_ID + NVOIP_OAUTH_CLIENT_SECRET or NVOIP_OAUTH_BASIC_AUTH.\n' >&2
+    printf 'Missing required OAuth configuration. Use NVOIP_OAUTH_CLIENT_ID + NVOIP_OAUTH_CLIENT_SECRET.\n' >&2
     return 1
   fi
 

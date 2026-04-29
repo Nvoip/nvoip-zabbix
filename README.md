@@ -32,12 +32,6 @@ export NVOIP_OAUTH_CLIENT_SECRET="seu_client_secret"
 export NVOIP_CALLER="1049"
 ```
 
-Se a sua operacao ja trabalha com o header serializado, voce tambem pode fornecer:
-
-```bash
-export NVOIP_OAUTH_BASIC_AUTH="basic_auth_base64"
-```
-
 ## Instalação
 
 1. Copie os scripts para o `AlertScriptsPath` do seu Zabbix.
@@ -67,7 +61,6 @@ export NVOIP_OAUTH_BASIC_AUTH="basic_auth_base64"
 
 - o token OAuth é gerado em cada execução do script
 - isso simplifica a configuração e evita depender de token manual expirada
-- o caminho recomendado agora é `client_id` + `client_secret`; o `NVOIP_OAUTH_BASIC_AUTH` ficou apenas como compatibilidade
 - para uso muito intenso, vale considerar cache local de token com controle de expiração
 
 ## Documentação oficial
