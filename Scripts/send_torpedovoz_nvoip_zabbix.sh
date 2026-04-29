@@ -1,37 +1,29 @@
-#!/bin/bash
+#!/bin/sh
+set -eu
 
-#Nvoip - Torpedo de Voz
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+. "$SCRIPT_DIR/nvoip_zabbix_common.sh"
 
-#Copyright (C) 2020 Nvoip Plataforma Telefonia Ltda
-#Leandro Campos <https://www.linkedin.com/in/leandro-campos/>
-#License https://www.gnu.org/licenses/gpl-3.0.html
+if [ -z "${NVOIP_CALLER:-}" ]; then
+  printf 'Missing required variable: NVOIP_CALLER\n' >&2
+  exit 1
+fi
 
-#This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by #the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+ACCESS_TOKEN="$(nvoip_get_access_token)"
 
-#This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Affero General Public License for more details.
-
-#You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-###Inicio do Script###
-# Seu Token da Nvoip. Acesse https://www.nvoip.com.br, crie sua para ter acesso ao seu Token.
-# English: Your Nvoip Token. Visit https://www.nvoip.com.br, create yours to have access to your Token.
-
-token_auth="TOKEN NVOIP"
-
-# O número do seu usuário(ramal) na Nvoip. O mesmo não precisa estar online.
-# English: Your Nvoip username (extension). It does not have to be online.
-caller="USUÁRIO NVOIP"
-
-#$1 e $2 são os parâmetros, em ordem, que você define no seu Servidor Zabbix. O $1 é o número que irá receber a chamada. Você pode reduzir, alterar a ordem ou acrescentar mais parâmetros.
-#English: $1 and $2 are the parameters, in order, that you set in your Zabbix Server. $ 1 is the number that will receive the call. You can reduce, change the order or add more parameters.
-
-curl --include \
-     --request POST \
-     --header "Content-Type: application/json" \
-     --header "token_auth: $token_auth" \
-     --data-binary "{
-    \"caller\":\"$caller\",
-    \"called\":\"$1\",
-    \"audio\":\"$2\"
-}" \
-'https://api.nvoip.com.br/v1/torpedovoz'
+curl -sS \
+  --request POST \
+  --header "Authorization: Bearer $ACCESS_TOKEN" \
+  --header "Content-Type: application/json" \
+  --data-binary "{
+    \"caller\": \"$(nvoip_json_escape "$NVOIP_CALLER")\",
+    \"called\": \"$(nvoip_json_escape "$1")\",
+    \"audios\": [
+      {
+        \"audio\": \"$(nvoip_json_escape "$2")\",
+        \"positionAudio\": 1
+      }
+    ],
+    \"dtmfs\": []
+  }" \
+  "$NVOIP_BASE_URL/torpedo/voice"
