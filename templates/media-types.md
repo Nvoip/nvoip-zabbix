@@ -1,5 +1,11 @@
 # Zabbix media types
 
+Este arquivo descreve os parâmetros para criar os Media Types em
+`Administration > Media types > Create media type`.
+
+As credenciais da Nvoip devem ficar como variáveis de ambiente no host do
+Zabbix, não como parâmetros do Media Type.
+
 ## SMS Nvoip
 
 - Type: `Script`
@@ -17,3 +23,4 @@
 - Parameters:
   - `{ALERT.SENDTO}`
   - `{ALERT.SUBJECT}`
+  - `{ALERT.MESSAGE}`
