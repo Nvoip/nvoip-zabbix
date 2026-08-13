@@ -8,6 +8,25 @@ on:
       - master
 
 jobs:
+  traceability:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require Jira key in every commit
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          invalid_commits="$(git log --format='%H%x09%s' "$BASE_SHA..$HEAD_SHA" | grep -Ev $'\t.*NN-[0-9]+' || true)"
+          if [ -n "$invalid_commits" ]; then
+            echo "Every commit introduced by this PR must contain a Jira key (NN-<number>):"
+            echo "$invalid_commits"
+            exit 1
+          fi
+
   shell:
     runs-on: ubuntu-latest
     steps:
