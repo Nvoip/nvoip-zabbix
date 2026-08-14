@@ -1,0 +1,290 @@
+{
+  "zabbix_export": {
+    "version": "7.0",
+    "template_groups": [
+      {
+        "uuid": "7b6b1b283c3a49a79a1582948c2cfbac",
+        "name": "Templates/Databases"
+      }
+    ],
+    "templates": [
+      {
+        "uuid": "a709bb9290914afbb4a3f61a47c81c76",
+        "template": "Template Nvoip Aurora Lock Guard",
+        "name": "Template Nvoip Aurora Lock Guard",
+        "description": "NN-4554: detects sustained metadata-lock queues and long-running Aurora queries without collecting SQL text or customer data.",
+        "groups": [
+          {
+            "name": "Templates/Databases"
+          }
+        ],
+        "items": [
+          {
+            "uuid": "2a87f49d597242e8abe440e6956749d7",
+            "name": "Aurora guard: session counters (JSON)",
+            "type": "ODBC",
+            "key": "db.odbc.get[nvoip.db.guard,{$NVOIP.DB.DSN}]",
+            "delay": "30s",
+            "history": "1d",
+            "value_type": "TEXT",
+            "trends": "0",
+            "params": "SELECT COUNT(*) AS visible_session_count, COALESCE(SUM(CASE WHEN STATE LIKE '%metadata lock%' THEN 1 ELSE 0 END), 0) AS metadata_wait_count, COALESCE(MAX(CASE WHEN STATE LIKE '%metadata lock%' THEN COALESCE(TIME, 0) ELSE 0 END), 0) AS metadata_wait_max_seconds, COALESCE(SUM(CASE WHEN COMMAND <> 'Sleep' AND COALESCE(TIME, 0) >= {$NVOIP.DB.LONG_QUERY.WARN} AND USER NOT IN ('system user', 'event_scheduler') THEN 1 ELSE 0 END), 0) AS long_query_count, COALESCE(MAX(CASE WHEN COMMAND <> 'Sleep' AND USER NOT IN ('system user', 'event_scheduler') THEN COALESCE(TIME, 0) ELSE 0 END), 0) AS longest_query_seconds FROM information_schema.PROCESSLIST WHERE ID <> CONNECTION_ID()",
+            "tags": [
+              {
+                "tag": "jira",
+                "value": "NN-4554"
+              },
+              {
+                "tag": "service",
+                "value": "database"
+              }
+            ],
+            "triggers": [
+              {
+                "uuid": "fbdd8cd09c5f48a9a3fcb3c58288a948",
+                "expression": "nodata(/Template Nvoip Aurora Lock Guard/db.odbc.get[nvoip.db.guard,{$NVOIP.DB.DSN}],2m)=1",
+                "name": "Aurora guard has no fresh sample for 2 minutes",
+                "priority": "HIGH",
+                "description": "The NN-4554 detector is not producing samples. Validate the ODBC DSN, database connectivity and the Zabbix database poller before treating database health as known.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-4554"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "uuid": "74a0489243124afe890b11dcd23fa0f2",
+            "name": "Aurora guard: visible sessions",
+            "type": "DEPENDENT",
+            "key": "nvoip.db.guard.visible_sessions",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$[0].visible_session_count"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "db.odbc.get[nvoip.db.guard,{$NVOIP.DB.DSN}]"
+            },
+            "triggers": [
+              {
+                "uuid": "b97ed54a3e98423bbf69a31fc80fbe00",
+                "expression": "max(/Template Nvoip Aurora Lock Guard/nvoip.db.guard.visible_sessions,5m)<1",
+                "name": "Aurora guard cannot see other sessions",
+                "priority": "AVERAGE",
+                "description": "The ODBC account can only see its own connection. Grant the global PROCESS privilege to the dedicated read-only monitoring account; do not broaden table data access.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-4554"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "uuid": "995f6c16632549bea862f0d4dd5355e9",
+            "name": "Aurora guard: metadata lock waiters",
+            "type": "DEPENDENT",
+            "key": "nvoip.db.metadata_wait.count",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$[0].metadata_wait_count"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "db.odbc.get[nvoip.db.guard,{$NVOIP.DB.DSN}]"
+            },
+            "triggers": [
+              {
+                "uuid": "b669c3a13ecf47ddb93def6161a41ddc",
+                "expression": "min(/Template Nvoip Aurora Lock Guard/nvoip.db.metadata_wait.count,1m)>={$NVOIP.DB.MDL.WAIT.COUNT.WARN} and min(/Template Nvoip Aurora Lock Guard/nvoip.db.metadata_wait.max_seconds,1m)>={$NVOIP.DB.MDL.WAIT.AGE.WARN} and max(/Template Nvoip Aurora Lock Guard/nvoip.db.metadata_wait.count,1m)<{$NVOIP.DB.MDL.WAIT.COUNT.HIGH} and max(/Template Nvoip Aurora Lock Guard/nvoip.db.metadata_wait.max_seconds,1m)<{$NVOIP.DB.MDL.WAIT.AGE.HIGH}",
+                "name": "Aurora has a sustained metadata-lock queue",
+                "priority": "WARNING",
+                "description": "At least three sessions have waited on a metadata lock for at least 30 seconds. Stop initiating maintenance DDL, identify the queued DDL and blocker, and follow the NN-4554 runbook. Do not kill application sessions automatically.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-4554"
+                  }
+                ]
+              },
+              {
+                "uuid": "927e14c54f8e48fcb22742392a1f5daa",
+                "expression": "min(/Template Nvoip Aurora Lock Guard/nvoip.db.metadata_wait.count,1m)>={$NVOIP.DB.MDL.WAIT.COUNT.HIGH} or min(/Template Nvoip Aurora Lock Guard/nvoip.db.metadata_wait.max_seconds,1m)>={$NVOIP.DB.MDL.WAIT.AGE.HIGH}",
+                "name": "Aurora metadata-lock queue is threatening availability",
+                "priority": "DISASTER",
+                "description": "The metadata-lock queue crossed the NN-4554 high threshold. Treat this as an availability incident. Identify the queued maintenance DDL first; do not automatically kill application sessions or transactions.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-4554"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "uuid": "d2d3a7f21eb84259ad083ce072640aaa",
+            "name": "Aurora guard: oldest metadata lock wait",
+            "type": "DEPENDENT",
+            "key": "nvoip.db.metadata_wait.max_seconds",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "units": "s",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$[0].metadata_wait_max_seconds"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "db.odbc.get[nvoip.db.guard,{$NVOIP.DB.DSN}]"
+            }
+          },
+          {
+            "uuid": "29f201cb4e3148278ffb6f91ebdd137f",
+            "name": "Aurora guard: long-running active queries",
+            "type": "DEPENDENT",
+            "key": "nvoip.db.long_query.count",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$[0].long_query_count"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "db.odbc.get[nvoip.db.guard,{$NVOIP.DB.DSN}]"
+            },
+            "triggers": [
+              {
+                "uuid": "4a7f11942152493d826179061fac60d1",
+                "expression": "min(/Template Nvoip Aurora Lock Guard/nvoip.db.long_query.count,2m)>=1 and max(/Template Nvoip Aurora Lock Guard/nvoip.db.longest_query.seconds,2m)<{$NVOIP.DB.LONG_QUERY.HIGH}",
+                "name": "Aurora has a query running longer than {$NVOIP.DB.LONG_QUERY.WARN} seconds",
+                "priority": "WARNING",
+                "description": "A non-sleeping foreground query remained over the warning threshold for two minutes. Inspect ownership and impact before taking action; there is no automatic KILL.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-4554"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "uuid": "fd0b7b27d20a441796280fa7aa1ceadf",
+            "name": "Aurora guard: longest active query",
+            "type": "DEPENDENT",
+            "key": "nvoip.db.longest_query.seconds",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "units": "s",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$[0].longest_query_seconds"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "db.odbc.get[nvoip.db.guard,{$NVOIP.DB.DSN}]"
+            },
+            "triggers": [
+              {
+                "uuid": "329cabd0ee9a46e8bc7f47146cf23529",
+                "expression": "min(/Template Nvoip Aurora Lock Guard/nvoip.db.longest_query.seconds,1m)>={$NVOIP.DB.LONG_QUERY.HIGH}",
+                "name": "Aurora has a query running longer than {$NVOIP.DB.LONG_QUERY.HIGH} seconds",
+                "priority": "HIGH",
+                "description": "A non-sleeping foreground query crossed the high threshold. Inspect the query owner, transaction and blockers. Never kill a production query solely from this trigger.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-4554"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "macros": [
+          {
+            "macro": "{$NVOIP.DB.DSN}",
+            "value": "nvoip",
+            "description": "ODBC DSN configured on the Zabbix server."
+          },
+          {
+            "macro": "{$NVOIP.DB.LONG_QUERY.HIGH}",
+            "value": "900",
+            "description": "High-severity active-query age in seconds."
+          },
+          {
+            "macro": "{$NVOIP.DB.LONG_QUERY.WARN}",
+            "value": "300",
+            "description": "Warning active-query age in seconds."
+          },
+          {
+            "macro": "{$NVOIP.DB.MDL.WAIT.AGE.HIGH}",
+            "value": "120",
+            "description": "High-severity oldest metadata-lock wait in seconds."
+          },
+          {
+            "macro": "{$NVOIP.DB.MDL.WAIT.AGE.WARN}",
+            "value": "30",
+            "description": "Warning oldest metadata-lock wait in seconds."
+          },
+          {
+            "macro": "{$NVOIP.DB.MDL.WAIT.COUNT.HIGH}",
+            "value": "20",
+            "description": "High-severity metadata-lock waiter count."
+          },
+          {
+            "macro": "{$NVOIP.DB.MDL.WAIT.COUNT.WARN}",
+            "value": "3",
+            "description": "Warning metadata-lock waiter count."
+          }
+        ],
+        "tags": [
+          {
+            "tag": "jira",
+            "value": "NN-4554"
+          },
+          {
+            "tag": "scope",
+            "value": "aurora"
+          }
+        ]
+      }
+    ]
+  }
+}

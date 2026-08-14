@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Nvoip/nvoip-zabbix/actions/workflows/ci.yml/badge.svg)](https://github.com/Nvoip/nvoip-zabbix/actions/workflows/ci.yml) [![Nvoip](https://img.shields.io/badge/Nvoip-site-00A3E0?style=flat-square)](https://www.nvoip.com.br/) [![API v2](https://img.shields.io/badge/API-v2-1F6FEB?style=flat-square)](https://www.nvoip.com.br/api/) [![Docs](https://img.shields.io/badge/docs-Apiary-6A737D?style=flat-square)](https://nvoip.docs.apiary.io/) [![Postman](https://img.shields.io/badge/Postman-workspace-FF6C37?style=flat-square)](https://nvoip-api.postman.co/workspace/e671d01f-168a-4c38-8d0e-c217229dd61a/team-quickstart) [![Stack](https://img.shields.io/badge/stack-Zabbix-D40000?style=flat-square)](https://github.com/Nvoip/nvoip-api-examples) [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
 
-Integração oficial da [Nvoip](https://www.nvoip.com.br/) para alertas do Zabbix via API v2 com SMS e torpedo de voz.
+Integração oficial da [Nvoip](https://www.nvoip.com.br/) para alertas do Zabbix via API v2 com SMS e torpedo de voz. O repositório também mantém templates operacionais próprios da Nvoip.
 
 ## O que mudou
 
@@ -22,6 +22,19 @@ Esta versão já usa:
 - `Scripts/nvoip_zabbix_common.sh`
 - `Scripts/check_nvoip_zabbix_config.sh`
 - `templates/media-types.md`
+- `templates/template-nvoip-aurora-lock-guard.json`
+- `docs/database-lock-monitoring.md`
+
+## Proteção do Aurora contra locks em cascata
+
+O template `Template Nvoip Aurora Lock Guard` coleta, em uma única consulta ODBC a cada 30 segundos:
+
+- quantidade e maior idade de sessões em `Waiting for table metadata lock`;
+- quantidade de consultas ativas acima de cinco minutos;
+- maior idade de uma consulta ativa;
+- quantidade de sessões visíveis ao usuário de monitoramento.
+
+Ele não coleta texto SQL, parâmetros nem dados de clientes. A instalação, o privilégio mínimo necessário e o roteiro de teste estão em `docs/database-lock-monitoring.md`.
 
 ## Variáveis de ambiente necessárias
 
