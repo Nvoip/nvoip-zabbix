@@ -1,0 +1,80 @@
+{
+  "zabbix_export": {
+    "version": "7.0",
+    "template_groups": [
+      {
+        "uuid": "e478a4cc79494d4586b67e41a3664b7c",
+        "name": "Templates/Applications"
+      }
+    ],
+    "templates": [
+      {
+        "uuid": "86a5bfd01fc6428ba2cb2ac8351e8721",
+        "template": "Template Nvoip MySQL 1267 Log Guard",
+        "name": "Template Nvoip MySQL 1267 Log Guard",
+        "description": "NN-4522: detects MySQL error 1267 or Illegal mix of collations in application logs without executing SQL or changing collations.",
+        "groups": [
+          {
+            "name": "Templates/Applications"
+          }
+        ],
+        "items": [
+          {
+            "uuid": "1fca6a16906047258be420576e9d26de",
+            "name": "MySQL 1267 collation errors",
+            "type": "ZABBIX_ACTIVE",
+            "key": "logrt[{$NVOIP.MYSQL1267.LOG_PATH},\"(?i)(MySQL[^0-9]{0,24}1267|Illegal mix of collations)\",,,skip]",
+            "delay": "10s",
+            "history": "7d",
+            "value_type": "LOG",
+            "trends": "0",
+            "description": "Collects only lines matching error 1267. Configure the path macro per host and ensure the Zabbix agent can read the application log without changing existing file permissions.",
+            "tags": [
+              {
+                "tag": "jira",
+                "value": "NN-4522"
+              },
+              {
+                "tag": "service",
+                "value": "mysql-client-errors"
+              }
+            ],
+            "triggers": [
+              {
+                "uuid": "34a73424ea9244a6932b84a64a91f75a",
+                "expression": "count(/Template Nvoip MySQL 1267 Log Guard/logrt[{$NVOIP.MYSQL1267.LOG_PATH},\"(?i)(MySQL[^0-9]{0,24}1267|Illegal mix of collations)\",,,skip],5m)>0",
+                "name": "Application logged MySQL 1267 collation error",
+                "priority": "HIGH",
+                "description": "A production application logged an incompatible-collation comparison. Identify the service/context and query, stop retry amplification, inspect both operand collations, and validate the fix with PREPARE on the target schema. Never alter protected table collations as incident response.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-4522"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "macros": [
+          {
+            "macro": "{$NVOIP.MYSQL1267.LOG_PATH}",
+            "value": "/etc/nvoip/logs/.*\\.log$",
+            "description": "Absolute logrt filename regular expression. Override per host; do not broaden file permissions for the agent."
+          }
+        ],
+        "tags": [
+          {
+            "tag": "jira",
+            "value": "NN-4522"
+          },
+          {
+            "tag": "scope",
+            "value": "application-logs"
+          }
+        ]
+      }
+    ]
+  }
+}
