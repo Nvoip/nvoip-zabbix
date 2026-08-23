@@ -1,5 +1,9 @@
 # nvoip-zabbix
 
+## Grafana queries
+
+- [API key lazy-creation monitor (NN-4718)](docs/grafana/api-key-lazy-creation-monitor.md)
+
 [![CI](https://github.com/Nvoip/nvoip-zabbix/actions/workflows/ci.yml/badge.svg)](https://github.com/Nvoip/nvoip-zabbix/actions/workflows/ci.yml) [![Nvoip](https://img.shields.io/badge/Nvoip-site-00A3E0?style=flat-square)](https://www.nvoip.com.br/) [![API v2](https://img.shields.io/badge/API-v2-1F6FEB?style=flat-square)](https://www.nvoip.com.br/api/) [![Docs](https://img.shields.io/badge/docs-Apiary-6A737D?style=flat-square)](https://nvoip.docs.apiary.io/) [![Postman](https://img.shields.io/badge/Postman-workspace-FF6C37?style=flat-square)](https://nvoip-api.postman.co/workspace/e671d01f-168a-4c38-8d0e-c217229dd61a/team-quickstart) [![Stack](https://img.shields.io/badge/stack-Zabbix-D40000?style=flat-square)](https://github.com/Nvoip/nvoip-api-examples) [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
 
 Integração oficial da [Nvoip](https://www.nvoip.com.br/) para alertas do Zabbix via API v2 com SMS e torpedo de voz. O repositório também mantém templates operacionais próprios da Nvoip.
