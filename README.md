@@ -1,132 +1,98 @@
-# nvoip-zabbix
+# Nvoip for Zabbix
 
-## Grafana queries
+![Nvoip](assets/nvoip-logo.svg)
 
-- [API key lazy-creation monitor (NN-4718)](docs/grafana/api-key-lazy-creation-monitor.md)
+[![CI](https://github.com/Nvoip/nvoip-zabbix/actions/workflows/ci.yml/badge.svg)](https://github.com/Nvoip/nvoip-zabbix/actions/workflows/ci.yml)
+[![Nvoip API v3](https://img.shields.io/badge/Nvoip%20API-v3-1F6FEB?style=flat-square)](https://www.nvoip.com.br/api/)
+[![Zabbix 7.0+](https://img.shields.io/badge/Zabbix-7.0%2B-D40000?style=flat-square)](https://www.zabbix.com/)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
 
-[![CI](https://github.com/Nvoip/nvoip-zabbix/actions/workflows/ci.yml/badge.svg)](https://github.com/Nvoip/nvoip-zabbix/actions/workflows/ci.yml) [![Nvoip](https://img.shields.io/badge/Nvoip-site-00A3E0?style=flat-square)](https://www.nvoip.com.br/) [![API v2](https://img.shields.io/badge/API-v2-1F6FEB?style=flat-square)](https://www.nvoip.com.br/api/) [![Docs](https://img.shields.io/badge/docs-Apiary-6A737D?style=flat-square)](https://nvoip.docs.apiary.io/) [![Postman](https://img.shields.io/badge/Postman-workspace-FF6C37?style=flat-square)](https://nvoip-api.postman.co/workspace/e671d01f-168a-4c38-8d0e-c217229dd61a/team-quickstart) [![Stack](https://img.shields.io/badge/stack-Zabbix-D40000?style=flat-square)](https://github.com/Nvoip/nvoip-api-examples) [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
+Nvoip for Zabbix is a public webhook media type that sends Zabbix trigger
+notifications through the Nvoip API v3 by SMS, approved WhatsApp template, or
+voice message.
 
-Integração oficial da [Nvoip](https://www.nvoip.com.br/) para alertas do Zabbix
-por SMS, WhatsApp com template aprovado e torpedo de voz. O repositório também
-mantém scripts legados e templates operacionais próprios da Nvoip.
+The integration is distributed as an importable YAML file. It is disabled and
+uses dry-run by default, so importing it does not send a message or place a
+call.
 
-## Webhook para Zabbix 7.0+
+## Supported features
 
-O media type [`templates/media_nvoip.yaml`](templates/media_nvoip.yaml) usa a
-API v3, OAuth e macros secretas. O import sai desabilitado e em dry-run, sem
-enviar comunicação até a ativação explícita. Consulte o
-[guia de instalação, testes e rollback](docs/zabbix-nvoip-alerts.md).
+- SMS notifications;
+- WhatsApp notifications using a template approved for the Nvoip account;
+- dynamic voice messages for on-call escalation;
+- problem, recovery, and update message templates;
+- host, problem, severity, tags, event ID, date/time, and event URL context;
+- OAuth `client_credentials` or an externally managed bearer token;
+- retryable and permanent error classification without logging credentials or
+  provider response bodies;
+- voice recovery notifications disabled by default.
 
-## O que mudou
+## Requirements
 
-Os scripts antigos usavam a API v1 com `token_auth`.
+- Zabbix 7.0 or 7.4 (import tested on 7.0.30 and 7.4.14);
+- an active Nvoip API v3 account;
+- the required channel enabled for the account;
+- an approved WhatsApp template and instance when using WhatsApp;
+- an allowed caller number when using voice messages.
 
-Esta versão já usa:
+## Quick start
 
-- OAuth da API v2
-- `numbersip` + `user-token`
-- endpoint `/v2/sms`
-- endpoint `/v2/torpedo/voice`
+1. Download [`templates/media_nvoip.yaml`](templates/media_nvoip.yaml).
+2. In Zabbix, go to **Alerts > Media types > Import** and create the
+   **Nvoip alerts** media type.
+3. Keep it disabled and keep `nvoip_dry_run=1` while configuring it.
+4. Store OAuth credentials and channel identifiers in Zabbix secret or vault
+   macros. Never replace the placeholders in the YAML file.
+5. Add the media type to a Zabbix user with one of these **Send to** values:
 
-## Arquivos principais
+   ```text
+   sms:5511999999999
+   whatsapp:5511999999999
+   voice:5511999999999
+   ```
 
-- `Scripts/send_sms_nvoip_zabbix.sh`
-- `Scripts/send_torpedovoz_nvoip_zabbix.sh`
-- `Scripts/nvoip_zabbix_common.sh`
-- `Scripts/check_nvoip_zabbix_config.sh`
-- `templates/media-types.md`
-- `templates/media_nvoip.yaml`
-- `docs/zabbix-nvoip-alerts.md`
-- `templates/template-nvoip-aurora-lock-guard.json`
-- `docs/database-lock-monitoring.md`
+6. Test all three routes in dry-run before enabling the integration.
 
-## Proteção do Aurora contra locks em cascata
+Full instructions:
 
-O template `Template Nvoip Aurora Lock Guard` coleta, em uma única consulta ODBC a cada 30 segundos:
+- [English setup, testing, and removal guide](docs/zabbix-nvoip-alerts.en.md)
+- [Guia em português](docs/zabbix-nvoip-alerts.md)
 
-- quantidade e maior idade de sessões em `Waiting for table metadata lock`;
-- quantidade de consultas ativas acima de cinco minutos;
-- maior idade de uma consulta ativa;
-- quantidade de sessões visíveis ao usuário de monitoramento.
+## Security and privacy
 
-Ele não coleta texto SQL, parâmetros nem dados de clientes. A instalação, o privilégio mínimo necessário e o roteiro de teste estão em `docs/database-lock-monitoring.md`.
+- No credential or destination is embedded in the repository.
+- The webhook logs only the channel, Zabbix event ID, and HTTP status.
+- Account, channel, template, recipient, and rate-limit checks remain enforced
+  by the Nvoip API.
+- Live tests can send billable communications. Use only an authorized direct
+  account and authorized test recipients.
 
-## Variáveis de ambiente necessárias
+## Marketplace metadata
 
-Defina no host do Zabbix ou no ambiente do serviço:
+The public information prepared for the Zabbix integration proposal is in
+[`docs/zabbix-marketplace-listing.md`](docs/zabbix-marketplace-listing.md).
+Submission through the Zabbix vendor form is a separate external publication
+step.
 
-```bash
-export NVOIP_NUMBERSIP="seu_numbersip"
-export NVOIP_USER_TOKEN="seu_user_token"
-export NVOIP_OAUTH_CLIENT_ID="seu_client_id"
-export NVOIP_OAUTH_CLIENT_SECRET="seu_client_secret"
-export NVOIP_CALLER="1049"
-export NVOIP_SMS_MAX_CHARS="160"
-```
+## Legacy and Nvoip operational content
 
-Não use `Basic Auth` fixo salvo em arquivo. Os scripts montam o cabeçalho
-OAuth em tempo de execução a partir de `NVOIP_OAUTH_CLIENT_ID` e
-`NVOIP_OAUTH_CLIENT_SECRET`.
+The scripts in [`Scripts/`](Scripts/) and their
+[media type notes](templates/media-types.md) use the legacy API v2 integration
+path and remain available for existing installations. New installations should
+use the API v3 webhook above.
 
-## Instalação
+This repository also contains Nvoip-specific operational monitoring templates,
+including:
 
-1. Copie os scripts para o `AlertScriptsPath` do seu Zabbix, normalmente `/usr/lib/zabbix/alertscripts`.
-2. Ajuste permissões para o usuário do serviço Zabbix.
-3. Garanta que `curl`, `sed`, `base64` e `cut` estejam disponíveis.
-4. Defina as variáveis de ambiente no serviço do Zabbix ou em arquivo carregado pelo serviço.
-5. Configure os Media Types com base em `templates/media-types.md`.
+- [Aurora lock guard](docs/database-lock-monitoring.md);
+- [API key lazy-creation monitor](docs/grafana/api-key-lazy-creation-monitor.md).
 
-Exemplo de instalação:
+These operational templates are independent from the public Nvoip notification
+media type.
 
-```bash
-sudo cp Scripts/*.sh /usr/lib/zabbix/alertscripts/
-sudo chown zabbix:zabbix /usr/lib/zabbix/alertscripts/*.sh
-sudo chmod 750 /usr/lib/zabbix/alertscripts/*.sh
-```
+## Support and feedback
 
-Teste sem enviar SMS ou torpedo:
-
-```bash
-/usr/lib/zabbix/alertscripts/check_nvoip_zabbix_config.sh
-```
-
-## Media Types
-
-### SMS Nvoip
-
-- Script: `send_sms_nvoip_zabbix.sh`
-- Parâmetros:
-  - `{ALERT.SENDTO}`
-  - `{ALERT.SUBJECT}`
-  - `{ALERT.MESSAGE}`
-  - `{HOST.NAME1}`
-
-### Torpedo de Voz Nvoip
-
-- Script: `send_torpedovoz_nvoip_zabbix.sh`
-- Parâmetros:
-  - `{ALERT.SENDTO}`
-  - `{ALERT.SUBJECT}`
-  - `{ALERT.MESSAGE}`
-
-## Teste manual
-
-```bash
-Scripts/send_sms_nvoip_zabbix.sh "11999999999" "Teste Zabbix" "Mensagem de teste" "zabbix-server"
-Scripts/send_torpedovoz_nvoip_zabbix.sh "11999999999" "Teste Zabbix" "Mensagem de teste"
-```
-
-## Observações
-
-- o token OAuth é gerado em cada execução do script
-- isso simplifica a configuração e evita depender de token manual expirado
-- o SMS é limitado a 160 caracteres por padrão por causa da regra do endpoint `/sms`
-- para uso muito intenso, vale considerar cache local de token com controle de expiração
-
-## Links oficiais
-
-- [Site da Nvoip](https://www.nvoip.com.br/)
-- [Documentação da API](https://nvoip.docs.apiary.io/)
-- [Página da API](https://www.nvoip.com.br/api/)
-- [Workspace Postman](https://nvoip-api.postman.co/workspace/e671d01f-168a-4c38-8d0e-c217229dd61a/team-quickstart)
-- [Hub de exemplos](https://github.com/Nvoip/nvoip-api-examples)
+- [Nvoip website](https://www.nvoip.com.br/)
+- [Nvoip API page](https://www.nvoip.com.br/api/)
+- [Nvoip API Postman workspace](https://nvoip-api.postman.co/workspace/e671d01f-168a-4c38-8d0e-c217229dd61a/team-quickstart)
+- [Repository issues](https://github.com/Nvoip/nvoip-zabbix/issues)

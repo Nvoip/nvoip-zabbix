@@ -16,9 +16,9 @@ envia mensagens nem ligações.
 2. Importe `templates/media_nvoip.yaml` com **Create new** marcado.
 3. Mantenha **Nvoip alerts** desabilitado durante a configuração.
 
-O export é compatível com o formato do Zabbix 7.0 LTS e pode ser importado nas
-versões 7.x atuais. O JavaScript usa somente `HttpRequest`, `btoa` e recursos
-documentados pelo Zabbix.
+O export é compatível com o formato do Zabbix 7.0 LTS e teve a importação
+validada nas versões 7.0.30 e 7.4.14. O JavaScript usa somente `HttpRequest`,
+`btoa` e recursos documentados pelo Zabbix.
 
 ## 2. Cadastrar credenciais como macros secretas
 
@@ -68,7 +68,9 @@ O idioma padrão é `pt_BR`. O payload usa duas variáveis de corpo: assunto e
 mensagem. Se o template aprovado tiver outra quantidade ou ordem, ajuste os
 parâmetros `nvoip_whatsapp_body_1` a `nvoip_whatsapp_body_6`; parâmetros vazios
 não são enviados. A API rejeita template, instância, destinatário ou conta sem
-permissão. Perfis 11 e 12 são bloqueados pelo endpoint de WhatsApp.
+permissão. Algumas contas gerenciadas por revendedores não são elegíveis para
+notificações por WhatsApp; confirme a elegibilidade com a Nvoip antes de
+habilitar o canal.
 
 ### Chamada/torpedo de voz
 
