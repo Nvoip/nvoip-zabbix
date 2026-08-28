@@ -6,7 +6,16 @@
 
 [![CI](https://github.com/Nvoip/nvoip-zabbix/actions/workflows/ci.yml/badge.svg)](https://github.com/Nvoip/nvoip-zabbix/actions/workflows/ci.yml) [![Nvoip](https://img.shields.io/badge/Nvoip-site-00A3E0?style=flat-square)](https://www.nvoip.com.br/) [![API v2](https://img.shields.io/badge/API-v2-1F6FEB?style=flat-square)](https://www.nvoip.com.br/api/) [![Docs](https://img.shields.io/badge/docs-Apiary-6A737D?style=flat-square)](https://nvoip.docs.apiary.io/) [![Postman](https://img.shields.io/badge/Postman-workspace-FF6C37?style=flat-square)](https://nvoip-api.postman.co/workspace/e671d01f-168a-4c38-8d0e-c217229dd61a/team-quickstart) [![Stack](https://img.shields.io/badge/stack-Zabbix-D40000?style=flat-square)](https://github.com/Nvoip/nvoip-api-examples) [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
 
-Integração oficial da [Nvoip](https://www.nvoip.com.br/) para alertas do Zabbix via API v2 com SMS e torpedo de voz. O repositório também mantém templates operacionais próprios da Nvoip.
+Integração oficial da [Nvoip](https://www.nvoip.com.br/) para alertas do Zabbix
+por SMS, WhatsApp com template aprovado e torpedo de voz. O repositório também
+mantém scripts legados e templates operacionais próprios da Nvoip.
+
+## Webhook para Zabbix 7.0+
+
+O media type [`templates/media_nvoip.yaml`](templates/media_nvoip.yaml) usa a
+API v3, OAuth e macros secretas. O import sai desabilitado e em dry-run, sem
+enviar comunicação até a ativação explícita. Consulte o
+[guia de instalação, testes e rollback](docs/zabbix-nvoip-alerts.md).
 
 ## O que mudou
 
@@ -26,6 +35,8 @@ Esta versão já usa:
 - `Scripts/nvoip_zabbix_common.sh`
 - `Scripts/check_nvoip_zabbix_config.sh`
 - `templates/media-types.md`
+- `templates/media_nvoip.yaml`
+- `docs/zabbix-nvoip-alerts.md`
 - `templates/template-nvoip-aurora-lock-guard.json`
 - `docs/database-lock-monitoring.md`
 

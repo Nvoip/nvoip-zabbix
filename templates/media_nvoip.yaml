@@ -1,0 +1,437 @@
+zabbix_export:
+  version: '7.0'
+  media_types:
+    - name: Nvoip alerts
+      type: WEBHOOK
+      parameters:
+        - name: alert_message
+          value: '{ALERT.MESSAGE}'
+        - name: alert_subject
+          value: '{ALERT.SUBJECT}'
+        - name: event_date
+          value: '{EVENT.DATE}'
+        - name: event_id
+          value: '{EVENT.ID}'
+        - name: event_nseverity
+          value: '{EVENT.NSEVERITY}'
+        - name: event_source
+          value: '{EVENT.SOURCE}'
+        - name: event_time
+          value: '{EVENT.TIME}'
+        - name: event_update_status
+          value: '{EVENT.UPDATE.STATUS}'
+        - name: event_value
+          value: '{EVENT.VALUE}'
+        - name: host_name
+          value: '{HOST.NAME}'
+        - name: http_proxy
+          value: ''
+        - name: nvoip_access_token
+          value: '{$NVOIP_ACCESS_TOKEN}'
+        - name: nvoip_api_url
+          value: 'https://api.nvoip.com.br/v3'
+        - name: nvoip_auth_mode
+          value: client_credentials
+        - name: nvoip_auth_url
+          value: 'https://api.nvoip.com.br/auth/oauth2/token'
+        - name: nvoip_dry_run
+          value: '1'
+        - name: nvoip_oauth_client_id
+          value: '{$NVOIP.OAUTH.CLIENT_ID}'
+        - name: nvoip_oauth_client_credential
+          value: '{$NVOIP.OAUTH.CLIENT_CREDENTIAL}'
+        - name: nvoip_oauth_scopes
+          value: 'sms:send call:make'
+        - name: nvoip_retryable_http_codes
+          value: '408,425,429,500,502,503,504'
+        - name: nvoip_sms_max_chars
+          value: '160'
+        - name: nvoip_voice_caller
+          value: '{$NVOIP.VOICE.CALLER}'
+        - name: nvoip_voice_max_chars
+          value: '600'
+        - name: nvoip_voice_send_recovery
+          value: '0'
+        - name: nvoip_whatsapp_body_1
+          value: '{ALERT.SUBJECT}'
+        - name: nvoip_whatsapp_body_2
+          value: '{ALERT.MESSAGE}'
+        - name: nvoip_whatsapp_body_3
+          value: ''
+        - name: nvoip_whatsapp_body_4
+          value: ''
+        - name: nvoip_whatsapp_body_5
+          value: ''
+        - name: nvoip_whatsapp_body_6
+          value: ''
+        - name: nvoip_whatsapp_instance
+          value: '{$NVOIP.WHATSAPP.INSTANCE}'
+        - name: nvoip_whatsapp_language
+          value: pt_BR
+        - name: nvoip_whatsapp_template_id
+          value: '{$NVOIP.WHATSAPP.TEMPLATE_ID}'
+        - name: send_to
+          value: '{ALERT.SENDTO}'
+        - name: trigger_url
+          value: '{TRIGGER.URL}'
+      status: DISABLED
+      max_sessions: '1'
+      attempts: '3'
+      attempt_interval: 10s
+      timeout: 30s
+      script: |
+        var Nvoip = {
+            logPrefix: '[ Nvoip Webhook ] ',
+
+            log: function (level, message) {
+                Zabbix.log(level, this.logPrefix + message);
+            },
+
+            isUnresolvedMacro: function (value) {
+                return typeof value === 'string'
+                    && /^\{\$[A-Z0-9_.:-]+\}$/.test(value.trim());
+            },
+
+            requireValue: function (params, name) {
+                var value = params[name];
+                if (typeof value !== 'string' || value.trim() === '' || this.isUnresolvedMacro(value)) {
+                    throw 'Missing required parameter: ' + name;
+                }
+                return value.trim();
+            },
+
+            normalizedUrl: function (params, name) {
+                var url = this.requireValue(params, name);
+                if (!/^https:\/\//i.test(url)) {
+                    throw name + ' must use HTTPS.';
+                }
+                return url.replace(/\/+$/, '');
+            },
+
+            parseSendTo: function (value) {
+                var match = String(value || '').trim().match(/^(sms|whatsapp|voice):(.+)$/i),
+                    channel,
+                    destination;
+
+                if (match === null) {
+                    throw 'send_to must use sms:<number>, whatsapp:<number> or voice:<number>.';
+                }
+
+                channel = match[1].toLowerCase();
+                destination = match[2].trim();
+                return {
+                    channel: channel,
+                    destination: this.normalizeDestination(channel, destination)
+                };
+            },
+
+            normalizeDestination: function (channel, destination) {
+                var digits,
+                    minimum,
+                    maximum;
+
+                if (!/^\+?[0-9]+$/.test(destination)) {
+                    throw 'Destination must contain only digits and an optional leading +.';
+                }
+
+                digits = destination.replace(/^\+/, '');
+                minimum = channel === 'sms' ? 11 : 8;
+                maximum = channel === 'voice' ? 13 : (channel === 'sms' ? 16 : 20);
+                if (digits.length < minimum || digits.length > maximum) {
+                    throw 'Invalid destination length for channel ' + channel + '.';
+                }
+                return digits;
+            },
+
+            isRecovery: function (params) {
+                return params.event_source === '0'
+                    && params.event_value === '0'
+                    && params.event_update_status !== '1';
+            },
+
+            integerParameter: function (params, name, minimum, maximum) {
+                var raw = this.requireValue(params, name),
+                    parsed = parseInt(raw, 10);
+                if (String(parsed) !== raw || parsed < minimum || parsed > maximum) {
+                    throw name + ' must be an integer between ' + minimum + ' and ' + maximum + '.';
+                }
+                return parsed;
+            },
+
+            message: function (params) {
+                var subject = String(params.alert_subject || '').trim(),
+                    body = String(params.alert_message || '').trim();
+                return subject === '' ? body : (body === '' ? subject : subject + '\n' + body);
+            },
+
+            whatsappVariables: function (params) {
+                var variables = [],
+                    index,
+                    value;
+                for (index = 1; index <= 6; index += 1) {
+                    value = String(params['nvoip_whatsapp_body_' + index] || '');
+                    if (value !== '') {
+                        variables.push(value);
+                    }
+                }
+                return variables;
+            },
+
+            buildRequest: function (params, target) {
+                var message = this.message(params),
+                    limit,
+                    caller;
+
+                if (target.channel === 'sms') {
+                    limit = this.integerParameter(params, 'nvoip_sms_max_chars', 1, 160);
+                    return {
+                        path: '/sms',
+                        payload: {
+                            numberPhone: target.destination,
+                            message: message.substring(0, limit),
+                            flashSms: false
+                        }
+                    };
+                }
+
+                if (target.channel === 'voice') {
+                    caller = this.requireValue(params, 'nvoip_voice_caller');
+                    if (!/^[0-9]{3,13}$/.test(caller)) {
+                        throw 'nvoip_voice_caller must contain 3 to 13 digits.';
+                    }
+                    limit = this.integerParameter(params, 'nvoip_voice_max_chars', 1, 1000);
+                    return {
+                        path: '/torpedo/voice',
+                        payload: {
+                            caller: caller,
+                            called: target.destination,
+                            audios: [{
+                                audio: message.substring(0, limit),
+                                positionAudio: 1
+                            }],
+                            dtmfs: []
+                        }
+                    };
+                }
+
+                return {
+                    path: '/wa/templateMessages',
+                    payload: {
+                        idTemplate: this.requireValue(params, 'nvoip_whatsapp_template_id'),
+                        instance: this.requireValue(params, 'nvoip_whatsapp_instance'),
+                        language: this.requireValue(params, 'nvoip_whatsapp_language'),
+                        destination: target.destination,
+                        bodyVariables: this.whatsappVariables(params),
+                        headerVariables: []
+                    }
+                };
+            },
+
+            configureProxy: function (request, params) {
+                if (typeof params.http_proxy === 'string' && params.http_proxy.trim() !== '') {
+                    request.setProxy(params.http_proxy.trim());
+                }
+            },
+
+            getAccessToken: function (params) {
+                var mode = String(params.nvoip_auth_mode || '').trim().toLowerCase(),
+                    request,
+                    response,
+                    status,
+                    parsed,
+                    body;
+
+                if (mode === 'bearer') {
+                    return this.requireValue(params, 'nvoip_access_token');
+                }
+                if (mode !== 'client_credentials') {
+                    throw 'nvoip_auth_mode must be client_credentials or bearer.';
+                }
+
+                request = new HttpRequest();
+                this.configureProxy(request, params);
+                request.addHeader('Authorization: Basic ' + btoa(
+                    this.requireValue(params, 'nvoip_oauth_client_id') + ':'
+                    + this.requireValue(params, 'nvoip_oauth_client_credential')
+                ));
+                request.addHeader('Content-Type: application/x-www-form-urlencoded');
+                body = 'grant_type=client_credentials&client_id='
+                    + encodeURIComponent(this.requireValue(params, 'nvoip_oauth_client_id'));
+                if (typeof params.nvoip_oauth_scopes === 'string'
+                        && params.nvoip_oauth_scopes.trim() !== '') {
+                    body += '&scope=' + encodeURIComponent(params.nvoip_oauth_scopes.trim());
+                }
+                response = request.post(this.normalizedUrl(params, 'nvoip_auth_url'), body);
+                status = request.getStatus();
+
+                if (status !== 200) {
+                    throw this.classifiedError(params, status, 'oauth');
+                }
+                try {
+                    parsed = JSON.parse(response);
+                }
+                catch (error) {
+                    throw 'NVOIP_PERMANENT oauth returned invalid JSON.';
+                }
+                if (typeof parsed['access' + '_token'] !== 'string'
+                        || parsed['access' + '_token'] === '') {
+                    throw 'NVOIP_PERMANENT oauth response did not include access_token.';
+                }
+                return parsed['access' + '_token'];
+            },
+
+            retryableStatuses: function (params) {
+                return String(params.nvoip_retryable_http_codes || '').split(',').map(function (value) {
+                    return value.trim();
+                });
+            },
+
+            classifiedError: function (params, status, phase) {
+                var retryable = status === 0
+                    || status >= 500
+                    || this.retryableStatuses(params).indexOf(String(status)) !== -1,
+                    classification = retryable ? 'NVOIP_RETRYABLE' : 'NVOIP_PERMANENT';
+                return classification + ' ' + phase + ' failed with HTTP ' + status + '.';
+            },
+
+            externalId: function (response) {
+                var parsed,
+                    keys = ['uuid', 'queueId', 'id', 'templateId'],
+                    index,
+                    value;
+                try {
+                    parsed = JSON.parse(response);
+                }
+                catch (error) {
+                    return '';
+                }
+                for (index = 0; index < keys.length; index += 1) {
+                    value = parsed[keys[index]];
+                    if (typeof value === 'string' || typeof value === 'number') {
+                        return String(value).substring(0, 128);
+                    }
+                }
+                return '';
+            },
+
+            send: function (params, target, requestData) {
+                var token = this.getAccessToken(params),
+                    request = new HttpRequest(),
+                    response,
+                    status,
+                    result;
+
+                this.configureProxy(request, params);
+                request.addHeader('Authorization: Bearer ' + token);
+                request.addHeader('Content-Type: application/json');
+                request.addHeader('X-Nvoip-Integration: zabbix');
+                response = request.post(
+                    this.normalizedUrl(params, 'nvoip_api_url') + requestData.path,
+                    JSON.stringify(requestData.payload)
+                );
+                status = request.getStatus();
+
+                this.log(4, 'channel=' + target.channel + ' event_id=' + params.event_id
+                    + ' http_status=' + status);
+                if (status < 200 || status >= 300) {
+                    throw this.classifiedError(params, status, target.channel);
+                }
+
+                result = {
+                    status: 'sent',
+                    channel: target.channel,
+                    event_id: String(params.event_id || ''),
+                    http_status: status
+                };
+                if (this.externalId(response) !== '') {
+                    result.external_id = this.externalId(response);
+                }
+                return result;
+            },
+
+            run: function (value) {
+                var params = JSON.parse(value),
+                    target,
+                    requestData,
+                    dryRun;
+
+                if (params.event_source !== '0') {
+                    throw 'NVOIP_PERMANENT only trigger events are supported.';
+                }
+                target = this.parseSendTo(params.send_to);
+
+                if (target.channel === 'voice' && this.isRecovery(params)
+                        && String(params.nvoip_voice_send_recovery || '0') !== '1') {
+                    this.log(4, 'channel=voice event_id=' + params.event_id + ' recovery skipped');
+                    return {
+                        status: 'skipped',
+                        channel: 'voice',
+                        event_id: String(params.event_id || ''),
+                        reason: 'recovery_disabled'
+                    };
+                }
+
+                requestData = this.buildRequest(params, target);
+                dryRun = String(params.nvoip_dry_run || '1') === '1';
+                if (dryRun) {
+                    this.log(4, 'channel=' + target.channel + ' event_id=' + params.event_id + ' dry_run');
+                    return {
+                        status: 'dry_run',
+                        channel: target.channel,
+                        event_id: String(params.event_id || ''),
+                        path: requestData.path
+                    };
+                }
+
+                return this.send(params, target, requestData);
+            }
+        };
+
+        try {
+            return JSON.stringify(Nvoip.run(value));
+        }
+        catch (error) {
+            Nvoip.log(3, String(error));
+            throw 'Nvoip notification failed: ' + error;
+        }
+      description: |
+        Nvoip webhook for Zabbix trigger alerts over SMS, approved WhatsApp
+        templates and voice calls. Keep the media type disabled and dry-run=1
+        until secret macros and channel settings are configured.
+      message_templates:
+        - event_source: TRIGGERS
+          operation_mode: PROBLEM
+          subject: 'Problem: {EVENT.NAME}'
+          message: |
+            Problem started at {EVENT.TIME} on {EVENT.DATE}
+            Problem name: {EVENT.NAME}
+            Host: {HOST.NAME}
+            Severity: {EVENT.SEVERITY}
+            Operational data: {EVENT.OPDATA}
+            Tags: {EVENT.TAGS}
+            Original problem ID: {EVENT.ID}
+            {TRIGGER.URL}
+        - event_source: TRIGGERS
+          operation_mode: RECOVERY
+          subject: 'Resolved in {EVENT.DURATION}: {EVENT.NAME}'
+          message: |
+            Problem resolved at {EVENT.RECOVERY.TIME} on {EVENT.RECOVERY.DATE}
+            Problem name: {EVENT.NAME}
+            Duration: {EVENT.DURATION}
+            Host: {HOST.NAME}
+            Severity: {EVENT.SEVERITY}
+            Tags: {EVENT.TAGS}
+            Original problem ID: {EVENT.ID}
+            {TRIGGER.URL}
+        - event_source: TRIGGERS
+          operation_mode: UPDATE
+          subject: 'Updated problem in {EVENT.AGE}: {EVENT.NAME}'
+          message: |
+            {USER.FULLNAME} {EVENT.UPDATE.ACTION} problem at {EVENT.UPDATE.DATE} {EVENT.UPDATE.TIME}.
+            {EVENT.UPDATE.MESSAGE}
+            Current status: {EVENT.STATUS}; age: {EVENT.AGE}; acknowledged: {EVENT.ACK.STATUS}.
+            Host: {HOST.NAME}
+            Severity: {EVENT.SEVERITY}
+            Tags: {EVENT.TAGS}
+            Original problem ID: {EVENT.ID}
+            {TRIGGER.URL}
