@@ -1,0 +1,54 @@
+# Migrar scripts antigos para o Webhook nativo
+
+O caminho recomendado é importar `templates/media_nvoip.yaml` em Zabbix 7.0
+ou superior. Não é necessário instalar ou atualizar scripts de SMS no servidor.
+O Webhook usa `POST https://api.nvoip.com.br/v3/sms` com OAuth; o `token_auth`
+legado não é um bearer OAuth e não deve ser reutilizado nesse parâmetro.
+
+## Preparar
+
+1. Exporte as actions e os media types envolvidos. Registre seus filtros,
+   operações de problema/recuperação, usuários, destinos, horários e
+   severidades. Guarde o backup em local restrito, fora do Git.
+2. Confirme qual conta Nvoip deve enviar os alertas e obtenha um cliente OAuth
+   autorizado para essa conta, limitado ao escopo `sms:send` para SMS.
+3. Importe o YAML com **Create new** em **Alerts > Media types**, sem substituir
+   mídias existentes. **Nvoip alerts** deve ficar desabilitado, com
+   `nvoip_dry_run=1`.
+4. Configure as macros OAuth como **Secret text** ou **Vault secret**, conforme
+   [o guia de configuração](zabbix-nvoip-alerts.md). Não grave as credenciais no
+   YAML, nas mensagens, nos logs ou no campo **Send to**.
+5. Para o primeiro teste, adicione a mídia nativa apenas ao usuário autorizado,
+   com `Send to=sms:<número internacional>` (por exemplo, `sms:5511999999999`).
+   Preserve os horários e as severidades da mídia antiga.
+
+## Testar e migrar
+
+1. Execute **Test** em dry-run e confirme `status=dry_run`, canal SMS e rota
+   `/sms`. Não há chamada à API nessa etapa.
+2. Após configurar OAuth, faça um teste real somente para o destinatário
+   autorizado, com `nvoip_dry_run=0`. Confirme tanto a aceitação da API quanto o
+   recebimento no aparelho. `status=sent`/HTTP 200 sozinho não prova entrega.
+3. Habilite a mídia nativa e altere somente as operações das actions escolhidas
+   para usar **Nvoip alerts**. Inclua as operações de recuperação quando
+   aplicável; preserve os filtros, usuários, destinos, horários e severidades.
+4. Se alguma operação usa **All media**, verifique o risco de envio duplicado:
+   um usuário com as mídias antiga e nova ativas pode receber ambas. Migre as
+   referências antes de desativar a mídia antiga e evite uma janela de envio
+   duplo. Não remova mídias usadas por outras actions.
+5. Gere um evento controlado para a action migrada e sua recuperação; confira
+   o histórico da action, os erros do Webhook e o recebimento. Migre as demais
+   actions somente após esse aceite e dentro do escopo autorizado.
+
+## Reverter
+
+Se houver falha, restaure as operações e associações da mídia anterior a partir
+do backup e desabilite a mídia nativa. Não apague arquivos, mude permissões nem
+remova macros usadas por outras integrações. Restaurar o script antigo restaura
+a configuração anterior; não garante envio quando aquele transporte já falhava.
+
+Atualizar este repositório não migra automaticamente instalações de terceiros.
+
+migration/SQL: none.
+passo manual: importar o Webhook, configurar OAuth, testar o destinatário
+permitido e migrar as associações das actions conforme a sequência acima.

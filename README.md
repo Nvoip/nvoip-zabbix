@@ -76,10 +76,15 @@ step.
 
 ## Legacy and Nvoip operational content
 
-The scripts in [`Scripts/`](Scripts/) and their
-[media type notes](templates/media-types.md) use the legacy API v2 integration
-path and remain available for existing installations. New installations should
-use the API v3 webhook above.
+The scripts in [`Scripts/`](Scripts/) remain available as historical content
+for existing installations. New installations and migrations should use the
+native API v3 webhook above; see the
+[native migration guide](docs/native-migration.md) for replacing script media
+types while preserving action filters and recipients.
+
+The native SMS webhook checks the API response as well as the HTTP status.
+An HTTP 200 containing an SMS rejection is a failure. API acceptance does not
+confirm delivery to the recipient's phone.
 
 This repository also contains Nvoip-specific operational monitoring templates,
 including:
