@@ -128,6 +128,14 @@ tentativas; o texto de erro inclui fase, canal e HTTP status, nunca token ou
 corpo da resposta. O ID do evento segue na mensagem padrão para correlação com
 os logs da Nvoip.
 
+No SMS, HTTP 200 só é aceito com `status=200 - SMS Enviado com Sucesso` no
+JSON. HTML, JSON inválido e respostas de rejeição funcional falham, inclusive
+quando HTTP é 200. `status=sent` no resultado do Webhook significa aceitação
+pela API; `delivery_confirmed=false` distingue isso de recebimento no celular.
+Não cadastrar o `token_auth` de scripts antigos como bearer OAuth. Consulte o
+[guia de migração para o Webhook nativo](native-migration.md) para preservar instalações
+existentes.
+
 ## 7. Desinstalar ou reverter
 
 1. Desabilite as actions que usam **Nvoip alerts**.
