@@ -7,6 +7,11 @@ Zabbix 7.0 ou superior. Ele usa os endpoints atuais da API v3 da Nvoip:
 - `POST /v3/wa/templateMessages`, sempre com template aprovado;
 - `POST /v3/torpedo/voice`.
 
+As requisições OAuth e de notificação se identificam com o cabeçalho
+`User-Agent: Nvoip-Zabbix/1.0 (+https://github.com/Nvoip/nvoip-zabbix)`.
+Isso evita a rejeição Cloudflare 1010 observada em requisições sem identificação
+adequada, preservando as regras de segurança da API.
+
 O media type sai desabilitado e com `nvoip_dry_run=1`. Importar o arquivo não
 envia mensagens nem ligações.
 
