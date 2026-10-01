@@ -82,6 +82,7 @@ zabbix_export:
       script: |
         var Nvoip = {
             logPrefix: '[ Nvoip Webhook ] ',
+            userAgent: 'Nvoip-Zabbix/1.0 (+https://github.com/Nvoip/nvoip-zabbix)',
 
             log: function (level, message) {
                 Zabbix.log(level, this.logPrefix + message);
@@ -265,6 +266,7 @@ zabbix_export:
 
                 request = new HttpRequest();
                 this.configureProxy(request, params);
+                request.addHeader('User-Agent: ' + this.userAgent);
                 request.addHeader('Authorization: Basic ' + btoa(
                     this.requireValue(params, 'nvoip_oauth_client_id') + ':'
                     + this.requireValue(params, 'nvoip_oauth_client_credential')
@@ -363,6 +365,7 @@ zabbix_export:
                     result;
 
                 this.configureProxy(request, params);
+                request.addHeader('User-Agent: ' + this.userAgent);
                 request.addHeader('Authorization: Bearer ' + token);
                 request.addHeader('Content-Type: application/json');
                 request.addHeader('X-Nvoip-Integration: zabbix');

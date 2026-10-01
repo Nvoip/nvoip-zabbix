@@ -125,6 +125,19 @@ def oauth_response():
 
 
 class NvoipMediaTypeTest(unittest.TestCase):
+    def test_all_channels_identify_oauth_and_notification_requests(self):
+        user_agent = "User-Agent: Nvoip-Zabbix/1.0 (+https://github.com/Nvoip/nvoip-zabbix)"
+        for channel in ("sms", "whatsapp", "voice"):
+            with self.subTest(channel=channel):
+                result = run_webhook(
+                    default_params(send_to=f"{channel}:5511999999999"),
+                    [oauth_response(), {"status": 200, "body": '{"status":"200 - SMS Enviado com Sucesso"}'}],
+                )
+                self.assertTrue(result["output"]["ok"])
+                self.assertEqual(len(result["calls"]), 2)
+                for call in result["calls"]:
+                    self.assertIn(user_agent, call["headers"])
+
     def test_export_has_safe_defaults_and_no_embedded_secret(self):
         content = MEDIA_TYPE.read_text(encoding="utf-8")
         self.assertIn("version: '7.0'", content)

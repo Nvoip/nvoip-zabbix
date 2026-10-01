@@ -7,6 +7,11 @@ The `templates/media_nvoip.yaml` file contains a webhook media type for Zabbix
 - `POST /v3/wa/templateMessages`, with an approved template;
 - `POST /v3/torpedo/voice`.
 
+OAuth and notification requests identify the integration with
+`User-Agent: Nvoip-Zabbix/1.0 (+https://github.com/Nvoip/nvoip-zabbix)`.
+This addresses the Cloudflare 1010 rejection observed on requests without
+appropriate identification while preserving the API security rules.
+
 The imported media type is disabled and has `nvoip_dry_run=1`. Importing it
 does not send a message or place a call.
 
