@@ -6,7 +6,8 @@ import json
 import os
 import re
 import sys
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import unquote, urlencode, urlsplit
+from urllib.request import proxy_bypass_environment
 
 
 PASSWORD_GRANT = "password"
@@ -51,8 +52,25 @@ def classified(status, phase):
 
 def post(address, body, headers, config, phase, connection_factory=http.client.HTTPSConnection):
     parsed = url(address)
-    connection = connection_factory(parsed.hostname, parsed.port or 443,
-        timeout=bounded(config, 'NVOIP_HTTP_TIMEOUT', 10, 15))
+    timeout = bounded(config, 'NVOIP_HTTP_TIMEOUT', 10, 15)
+    proxy_value = config.get('https_proxy', config.get('HTTPS_PROXY', ''))
+    no_proxy = config.get('no_proxy', config.get('NO_PROXY', ''))
+    if proxy_value and not proxy_bypass_environment(parsed.hostname, {'no': no_proxy}):
+        proxy = urlsplit(proxy_value)
+        if proxy.scheme != 'http' or not proxy.hostname or proxy.path not in ('', '/') or proxy.query or proxy.fragment:
+            raise TransportError('HTTPS_PROXY must be an HTTP CONNECT proxy; use the native webhook for other proxies')
+        connection = connection_factory(proxy.hostname, proxy.port or 80, timeout=timeout)
+        tunnel_headers = {}
+        if proxy.username is not None:
+            credential = getattr(
+                proxy, 'password'
+            ) or ''
+            pair = unquote(proxy.username) + ':' + unquote(credential)
+            tunnel_headers['Proxy-Authorization'] = 'Basic ' + base64.b64encode(pair.encode()).decode('ascii')
+        # HTTPSConnection negotiates CONNECT first, then TLS to the API hostname.
+        connection.set_tunnel(parsed.hostname, parsed.port or 443, headers=tunnel_headers)
+    else:
+        connection = connection_factory(parsed.hostname, parsed.port or 443, timeout=timeout)
     try:
         connection.request('POST', parsed.path or '/', body=body, headers=headers)
         response = connection.getresponse()

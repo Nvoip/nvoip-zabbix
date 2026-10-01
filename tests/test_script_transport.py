@@ -17,11 +17,15 @@ class FakeNetwork:
         self.responses = list(responses)
         self.calls = []
         self.closed = 0
+        self.tunnels = []
 
     def connect(self, host, port, timeout):
         owner = self
 
         class Connection:
+            def set_tunnel(self, host, port, headers):
+                owner.tunnels.append({'host': host, 'port': port, 'headers': headers})
+
             def request(self, method, path, body, headers):
                 owner.calls.append({'host': host, 'path': path, 'body': body, 'headers': headers})
 
@@ -146,6 +150,22 @@ class ScriptTransportTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('Missing required variable', result.stderr)
         self.assertEqual(result.stdout, '')
+
+    def test_https_proxy_uses_connect_and_keeps_api_auth_out_of_tunnel(self):
+        network = FakeNetwork(ACCEPTED)
+        transport.run('sms', ARGS, {**BEARER, 'HTTPS_PROXY': 'http://dummy:dummy@proxy.test:8080'}, network.connect)
+        self.assertEqual(network.calls[0]['host'], 'proxy.test')
+        self.assertEqual(network.tunnels[0]['host'], 'api.nvoip.com.br')
+        self.assertNotIn('Authorization', network.tunnels[0]['headers'])
+        self.assertIn('Proxy-Authorization', network.tunnels[0]['headers'])
+        self.assertNotIn('Proxy-Authorization', network.calls[0]['headers'])
+
+    def test_no_proxy_uses_direct_tls_connection(self):
+        network = FakeNetwork(ACCEPTED)
+        transport.run('sms', ARGS, {**BEARER, 'HTTPS_PROXY': 'http://proxy.test:8080',
+            'NO_PROXY': '.nvoip.com.br'}, network.connect)
+        self.assertEqual(network.calls[0]['host'], 'api.nvoip.com.br')
+        self.assertEqual(network.tunnels, [])
 
 
 if __name__ == '__main__':

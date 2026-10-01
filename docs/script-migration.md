@@ -66,6 +66,12 @@ Zabbix e considere duplicatas quando o transporte terminar com entrega
 desconhecida. O timeout HTTP padrão é 10 segundos por requisição, configurável
 de 1 a 15, para acomodar autenticação e envio no timeout da mídia.
 
+`HTTPS_PROXY`/`https_proxy` aceita proxy HTTP CONNECT, inclusive autenticação de
+proxy; o TLS continua validando o hostname da API. `NO_PROXY`/`no_proxy` mantém
+as exceções explícitas do ambiente. Para outros tipos de proxy, use o parâmetro
+`http_proxy` do Webhook nativo. O transporte nunca imprime a URL do proxy ou
+sua credencial nos erros.
+
 ## Compatibilidade V2 explícita
 
 Instalações ainda dependentes do password grant podem manter temporariamente
