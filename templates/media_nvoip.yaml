@@ -105,7 +105,19 @@ zabbix_export:
                 if (!/^https:\/\//i.test(url)) {
                     throw name + ' must use HTTPS.';
                 }
+                if (name === 'nvoip_api_url' && !/^https:\/\/[^\/?#@]+\/v3\/*$/i.test(url)) {
+                    throw 'nvoip_api_url must use the API v3 base URL.';
+                }
                 return url.replace(/\/+$/, '');
+            },
+
+            truncateMessage: function (message, limit) {
+                var result = message.substring(0, limit),
+                    last = result.charCodeAt(result.length - 1);
+                if (last >= 0xD800 && last <= 0xDBFF) {
+                    result = result.substring(0, result.length - 1);
+                }
+                return result;
             },
 
             parseSendTo: function (value) {
@@ -183,12 +195,15 @@ zabbix_export:
                     caller;
 
                 if (target.channel === 'sms') {
+                    if (message.trim() === '') {
+                        throw 'NVOIP_PERMANENT empty SMS.';
+                    }
                     limit = this.integerParameter(params, 'nvoip_sms_max_chars', 1, 160);
                     return {
                         path: '/sms',
                         payload: {
                             numberPhone: target.destination,
-                            message: message.substring(0, limit),
+                            message: this.truncateMessage(message, limit),
                             flashSms: false
                         }
                     };
@@ -206,7 +221,7 @@ zabbix_export:
                             caller: caller,
                             called: target.destination,
                             audios: [{
-                                audio: message.substring(0, limit),
+                                audio: this.truncateMessage(message, limit),
                                 positionAudio: 1
                             }],
                             dtmfs: []
@@ -261,7 +276,12 @@ zabbix_export:
                         && params.nvoip_oauth_scopes.trim() !== '') {
                     body += '&scope=' + encodeURIComponent(params.nvoip_oauth_scopes.trim());
                 }
-                response = request.post(this.normalizedUrl(params, 'nvoip_auth_url'), body);
+                try {
+                    response = request.post(this.normalizedUrl(params, 'nvoip_auth_url'), body);
+                }
+                catch (error) {
+                    throw 'NVOIP_RETRYABLE oauth transport failed.';
+                }
                 status = request.getStatus();
 
                 if (status !== 200) {
@@ -314,6 +334,27 @@ zabbix_export:
                 return '';
             },
 
+            validateSmsResponse: function (response) {
+                var parsed,
+                    match,
+                    classification;
+                try {
+                    parsed = JSON.parse(response);
+                }
+                catch (error) {
+                    throw 'NVOIP_PERMANENT sms returned invalid JSON.';
+                }
+                if (parsed !== null && typeof parsed === 'object'
+                        && parsed.status === '200 - SMS Enviado com Sucesso') {
+                    return;
+                }
+                match = parsed !== null && typeof parsed === 'object'
+                    ? String(parsed.status || '').match(/^(\d{3})(?:\s|$)/) : null;
+                classification = match !== null && Number(match[1]) >= 500
+                    ? 'NVOIP_RETRYABLE' : 'NVOIP_PERMANENT';
+                throw classification + ' sms API acceptance was not confirmed (HTTP 2xx).';
+            },
+
             send: function (params, target, requestData) {
                 var token = this.getAccessToken(params),
                     request = new HttpRequest(),
@@ -325,10 +366,15 @@ zabbix_export:
                 request.addHeader('Authorization: Bearer ' + token);
                 request.addHeader('Content-Type: application/json');
                 request.addHeader('X-Nvoip-Integration: zabbix');
-                response = request.post(
-                    this.normalizedUrl(params, 'nvoip_api_url') + requestData.path,
-                    JSON.stringify(requestData.payload)
-                );
+                try {
+                    response = request.post(
+                        this.normalizedUrl(params, 'nvoip_api_url') + requestData.path,
+                        JSON.stringify(requestData.payload)
+                    );
+                }
+                catch (error) {
+                    throw 'NVOIP_RETRYABLE ' + target.channel + ' transport failed; delivery unknown.';
+                }
                 status = request.getStatus();
 
                 this.log(4, 'channel=' + target.channel + ' event_id=' + params.event_id
@@ -336,12 +382,16 @@ zabbix_export:
                 if (status < 200 || status >= 300) {
                     throw this.classifiedError(params, status, target.channel);
                 }
+                if (target.channel === 'sms') {
+                    this.validateSmsResponse(response);
+                }
 
                 result = {
                     status: 'sent',
                     channel: target.channel,
                     event_id: String(params.event_id || ''),
-                    http_status: status
+                    http_status: status,
+                    delivery_confirmed: false
                 };
                 if (this.externalId(response) !== '') {
                     result.external_id = this.externalId(response);
@@ -371,6 +421,7 @@ zabbix_export:
                     };
                 }
 
+                this.normalizedUrl(params, 'nvoip_api_url');
                 requestData = this.buildRequest(params, target);
                 dryRun = String(params.nvoip_dry_run || '1') === '1';
                 if (dryRun) {

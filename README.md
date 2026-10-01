@@ -76,10 +76,18 @@ step.
 
 ## Legacy and Nvoip operational content
 
-The scripts in [`Scripts/`](Scripts/) and their
-[media type notes](templates/media-types.md) use the legacy API v2 integration
-path and remain available for existing installations. New installations should
-use the API v3 webhook above.
+The script entry points in [`Scripts/`](Scripts/) now also default to API v3
+and OAuth `client_credentials`. Their names and Zabbix arguments are preserved
+for installations that cannot yet import the native webhook. They require
+Python 3 and explicit OAuth configuration; the historical
+`/integrations/nvoip/sms` transport is retired. See the
+[script migration guide](docs/script-migration.md) before updating an existing
+installation. API v2 password-grant compatibility is explicit and optional.
+New installations should use the API v3 webhook above.
+
+Both the native webhook and SMS scripts check the API response as well as the
+HTTP status. An HTTP 200 containing an SMS rejection is a failure. API
+acceptance does not confirm delivery to the recipient's phone.
 
 This repository also contains Nvoip-specific operational monitoring templates,
 including:

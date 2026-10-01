@@ -127,6 +127,12 @@ HTTP `408`, `425`, `429`, and `5xx` responses are classified as
 contains the phase, channel, and HTTP status, but never the provider response
 body or access token.
 
+SMS requires `status=200 - SMS Enviado com Sucesso` in a valid JSON response.
+An HTTP 200 containing a business rejection is a failure. Webhook `status=sent`
+means API acceptance; `delivery_confirmed=false` distinguishes it from handset
+receipt. Do not reuse a historical `token_auth` credential as an OAuth bearer.
+See the [script migration guide](script-migration.md) for existing installations.
+
 ## 7. Remove or roll back
 
 1. Disable actions that use **Nvoip alerts**.

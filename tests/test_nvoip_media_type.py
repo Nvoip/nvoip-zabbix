@@ -88,6 +88,7 @@ def run_webhook(params, responses):
           this.post = (url, body) => {{
             const response = responses.shift();
             if (!response) throw new Error('missing stub response');
+            if (response.error) throw new Error(response.error);
             this.status = response.status;
             calls.push({{url, body, headers: this.headers.slice(), proxy: this.proxy}});
             return response.body;
@@ -154,7 +155,7 @@ class NvoipMediaTypeTest(unittest.TestCase):
             default_params(alert_message='Text: "çãõ" ' + ("x" * 300)),
             [
                 oauth_response(),
-                {"status": 200, "body": '{"id":3168}'},
+                {"status": 200, "body": '{"id":3168,"status":"200 - SMS Enviado com Sucesso"}'},
             ],
         )
         self.assertTrue(result["output"]["ok"])
@@ -162,6 +163,7 @@ class NvoipMediaTypeTest(unittest.TestCase):
         self.assertEqual(parsed_result["status"], "sent")
         self.assertEqual(parsed_result["channel"], "sms")
         self.assertEqual(parsed_result["external_id"], "3168")
+        self.assertFalse(parsed_result["delivery_confirmed"])
         self.assertEqual(len(result["calls"]), 2)
 
         payload = json.loads(result["calls"][1]["body"])
@@ -255,6 +257,40 @@ class NvoipMediaTypeTest(unittest.TestCase):
         self.assertFalse(permanent["output"]["ok"])
         self.assertIn("NVOIP_PERMANENT", permanent["output"]["error"])
         self.assertNotIn("must-not-be-logged", json.dumps(permanent))
+
+    def test_sms_http_200_without_api_acceptance_fails(self):
+        for response in (
+            'Just a moment...', '{}', 'null', '[]',
+            '{"status":"400 - Saldo Insuficiente","mensagem":"private-text"}',
+            '{"status":"500 - Erro ao enviar SMS","mensagem":"private-text"}',
+        ):
+            with self.subTest(response=response):
+                result = run_webhook(default_params(), [oauth_response(), {"status": 200, "body": response}])
+                self.assertFalse(result["output"]["ok"])
+                self.assertIn('NVOIP_', result["output"]["error"])
+                self.assertNotIn('private-text', json.dumps(result))
+
+    def test_transport_exceptions_do_not_expose_credentials(self):
+        for responses in (
+            [{"error": "private-credential private-text"}],
+            [oauth_response(), {"error": "private-credential private-text"}],
+        ):
+            result = run_webhook(default_params(), responses)
+            self.assertFalse(result["output"]["ok"])
+            self.assertIn('NVOIP_RETRYABLE', result["output"]["error"])
+            self.assertNotIn('private-credential', json.dumps(result))
+            self.assertNotIn('private-text', json.dumps(result))
+
+    def test_retired_api_url_fails_before_oauth(self):
+        result = run_webhook(default_params(nvoip_api_url='https://api.nvoip.test/integrations/nvoip'), [])
+        self.assertFalse(result['output']['ok'])
+        self.assertEqual(result['calls'], [])
+
+    def test_sms_boundary_does_not_split_surrogate_pair(self):
+        result = run_webhook(default_params(alert_subject='', alert_message='x' * 159 + '🙂'),
+            [oauth_response(), {'status': 200, 'body': '{"status":"200 - SMS Enviado com Sucesso"}'}])
+        self.assertTrue(result['output']['ok'])
+        self.assertEqual(json.loads(result['calls'][1]['body'])['message'], 'x' * 159)
 
 
 if __name__ == "__main__":
