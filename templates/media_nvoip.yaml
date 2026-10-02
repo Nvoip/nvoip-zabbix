@@ -10,6 +10,18 @@ zabbix_export:
           value: '{ALERT.SUBJECT}'
         - name: event_date
           value: '{EVENT.DATE}'
+        - name: event_name
+          value: '{EVENT.NAME}'
+        - name: event_severity
+          value: '{EVENT.SEVERITY}'
+        - name: event_recovery_date
+          value: '{EVENT.RECOVERY.DATE}'
+        - name: event_recovery_time
+          value: '{EVENT.RECOVERY.TIME}'
+        - name: event_update_date
+          value: '{EVENT.UPDATE.DATE}'
+        - name: event_update_time
+          value: '{EVENT.UPDATE.TIME}'
         - name: event_id
           value: '{EVENT.ID}'
         - name: event_nseverity
@@ -44,8 +56,12 @@ zabbix_export:
           value: 'sms:send call:make'
         - name: nvoip_retryable_http_codes
           value: '408,425,429,500,502,503,504'
-        - name: nvoip_sms_max_chars
-          value: '160'
+        - name: nvoip_sms_problem_template_id
+          value: '{$NVOIP.SMS.PROBLEM_TEMPLATE_ID}'
+        - name: nvoip_sms_recovery_template_id
+          value: '{$NVOIP.SMS.RECOVERY_TEMPLATE_ID}'
+        - name: nvoip_sms_update_template_id
+          value: '{$NVOIP.SMS.UPDATE_TEMPLATE_ID}'
         - name: nvoip_voice_caller
           value: '{$NVOIP.VOICE.CALLER}'
         - name: nvoip_voice_max_chars
@@ -190,24 +206,48 @@ zabbix_export:
                 return variables;
             },
 
+            smsVariable: function (params, name, limit) {
+                var value = this.requireValue(params, name);
+                if (/^\{(?:EVENT|HOST)\.[A-Z_.]+\}$/.test(value)) {
+                    throw 'Unresolved Zabbix macro: ' + name;
+                }
+                return this.truncateMessage(value.replace(/\s+/g, ' '), limit);
+            },
+
+            buildSmsTemplateRequest: function (params, target) {
+                var mode = params.event_update_status === '1' ? 'update'
+                        : (this.isRecovery(params) ? 'recovery' : 'problem'),
+                    dateParameter = mode === 'problem' ? 'event_date' : 'event_' + mode + '_date',
+                    timeParameter = mode === 'problem' ? 'event_time' : 'event_' + mode + '_time',
+                    date = this.requireValue(params, dateParameter),
+                    time = this.requireValue(params, timeParameter);
+
+                if (!/^\d{4}\.\d{2}\.\d{2}$/.test(date) || !/^\d{2}:\d{2}:\d{2}$/.test(time)) {
+                    throw 'NVOIP_PERMANENT invalid SMS event date/time for ' + mode + '.';
+                }
+                return {
+                    path: '/sms/sendTemplate',
+                    payload: {
+                        templateId: this.integerParameter(params, 'nvoip_sms_' + mode + '_template_id', 1, 2147483647),
+                        phoneNumber: target.destination,
+                        variables: [
+                            this.smsVariable(params, 'event_name', 40),
+                            this.smsVariable(params, 'host_name', 20),
+                            this.smsVariable(params, 'event_severity', 12),
+                            this.smsVariable(params, 'event_id', 20),
+                            date.replace(/\./g, '-') + ' ' + time
+                        ]
+                    }
+                };
+            },
+
             buildRequest: function (params, target) {
                 var message = this.message(params),
                     limit,
                     caller;
 
                 if (target.channel === 'sms') {
-                    if (message.trim() === '') {
-                        throw 'NVOIP_PERMANENT empty SMS.';
-                    }
-                    limit = this.integerParameter(params, 'nvoip_sms_max_chars', 1, 160);
-                    return {
-                        path: '/sms',
-                        payload: {
-                            numberPhone: target.destination,
-                            message: this.truncateMessage(message, limit),
-                            flashSms: false
-                        }
-                    };
+                    return this.buildSmsTemplateRequest(params, target);
                 }
 
                 if (target.channel === 'voice') {
@@ -347,11 +387,12 @@ zabbix_export:
                     throw 'NVOIP_PERMANENT sms returned invalid JSON.';
                 }
                 if (parsed !== null && typeof parsed === 'object'
-                        && parsed.status === '200 - SMS Enviado com Sucesso') {
+                        && parsed.accepted === true
+                        && parsed.smsStatus === '200 - SMS Enviado com Sucesso') {
                     return;
                 }
                 match = parsed !== null && typeof parsed === 'object'
-                    ? String(parsed.status || '').match(/^(\d{3})(?:\s|$)/) : null;
+                    ? String(parsed.smsStatus || '').match(/^(\d{3})(?:\s|$)/) : null;
                 classification = match !== null && Number(match[1]) >= 500
                     ? 'NVOIP_RETRYABLE' : 'NVOIP_PERMANENT';
                 throw classification + ' sms API acceptance was not confirmed (HTTP 2xx).';
@@ -449,7 +490,7 @@ zabbix_export:
             throw 'Nvoip notification failed: ' + error;
         }
       description: |
-        Nvoip webhook for Zabbix trigger alerts over SMS, approved WhatsApp
+        Nvoip webhook for Zabbix trigger alerts over approved SMS and WhatsApp
         templates and voice calls. Keep the media type disabled and dry-run=1
         until secret macros and channel settings are configured.
       message_templates:

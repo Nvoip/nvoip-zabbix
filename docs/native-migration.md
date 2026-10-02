@@ -2,7 +2,7 @@
 
 O caminho recomendado é importar `templates/media_nvoip.yaml` em Zabbix 7.0
 ou superior. Não é necessário instalar ou atualizar scripts de SMS no servidor.
-O Webhook usa `POST https://api.nvoip.com.br/v3/sms` com OAuth; o `token_auth`
+O Webhook usa `POST https://api.nvoip.com.br/v3/sms/sendTemplate` com OAuth; o `token_auth`
 legado não é um bearer OAuth e não deve ser reutilizado nesse parâmetro.
 
 ## Preparar
@@ -12,20 +12,24 @@ legado não é um bearer OAuth e não deve ser reutilizado nesse parâmetro.
    severidades. Guarde o backup em local restrito, fora do Git.
 2. Confirme qual conta Nvoip deve enviar os alertas e obtenha um cliente OAuth
    autorizado para essa conta, limitado ao escopo `sms:send` para SMS.
-3. Importe o YAML com **Create new** em **Alerts > Media types**, sem substituir
+3. No Painel, selecione e salve cópias dos modelos SMS aprovados
+   `zabbix_problema`, `zabbix_recuperado` e `zabbix_atualizado`. Configure seus
+   IDs em `{$NVOIP.SMS.PROBLEM_TEMPLATE_ID}`, `{$NVOIP.SMS.RECOVERY_TEMPLATE_ID}`
+   e `{$NVOIP.SMS.UPDATE_TEMPLATE_ID}`. Mantenha texto livre bloqueado.
+4. Importe o YAML com **Create new** em **Alerts > Media types**, sem substituir
    mídias existentes. **Nvoip alerts** deve ficar desabilitado, com
    `nvoip_dry_run=1`.
-4. Configure as macros OAuth como **Secret text** ou **Vault secret**, conforme
+5. Configure as macros OAuth como **Secret text** ou **Vault secret**, conforme
    [o guia de configuração](zabbix-nvoip-alerts.md). Não grave as credenciais no
    YAML, nas mensagens, nos logs ou no campo **Send to**.
-5. Para o primeiro teste, adicione a mídia nativa apenas ao usuário autorizado,
+6. Para o primeiro teste, adicione a mídia nativa apenas ao usuário autorizado,
    com `Send to=sms:<número internacional>` (por exemplo, `sms:5511999999999`).
    Preserve os horários e as severidades da mídia antiga.
 
 ## Testar e migrar
 
 1. Execute **Test** em dry-run e confirme `status=dry_run`, canal SMS e rota
-   `/sms`. Não há chamada à API nessa etapa.
+   `/sms/sendTemplate`. Não há chamada à API nessa etapa.
 2. Após configurar OAuth, faça um teste real somente para o destinatário
    autorizado, com `nvoip_dry_run=0`. Confirme tanto a aceitação da API quanto o
    recebimento no aparelho. `status=sent`/HTTP 200 sozinho não prova entrega.
@@ -49,6 +53,8 @@ a configuração anterior; não garante envio quando aquele transporte já falha
 
 Atualizar este repositório não migra automaticamente instalações de terceiros.
 
-migration/SQL: none.
+migration/SQL: none para importar o media type; os modelos precisam existir e
+estar aprovados na conta antes de ativá-lo. A API deve fornecer `accepted` e
+`smsStatus` em `/sms/sendTemplate`; publique essa versão antes do Webhook.
 passo manual: importar o Webhook, configurar OAuth, testar o destinatário
 permitido e migrar as associações das actions conforme a sequência acima.

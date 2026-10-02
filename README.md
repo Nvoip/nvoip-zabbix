@@ -8,16 +8,17 @@
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
 
 Nvoip for Zabbix is a public webhook media type that sends Zabbix trigger
-notifications through the Nvoip API v3 by SMS, approved WhatsApp template, or
+notifications through the Nvoip API v3 by approved SMS template, approved WhatsApp template, or
 voice message.
 
 The integration is distributed as an importable YAML file. It is disabled and
 uses dry-run by default, so importing it does not send a message or place a
-call.
+call. Once imported, Zabbix executes it locally and calls the Nvoip API;
+GitHub is only needed to obtain updates, not to send alerts.
 
 ## Supported features
 
-- SMS notifications;
+- SMS notifications through approved account-owned templates;
 - WhatsApp notifications using a template approved for the Nvoip account;
 - dynamic voice messages for on-call escalation;
 - problem, recovery, and update message templates;
@@ -32,6 +33,7 @@ call.
 - Zabbix 7.0 or 7.4 (import tested on 7.0.30 and 7.4.14);
 - an active Nvoip API v3 account;
 - the required channel enabled for the account;
+- approved problem, recovery, and update SMS templates when using SMS;
 - an approved WhatsApp template and instance when using WhatsApp;
 - an allowed caller number when using voice messages.
 
