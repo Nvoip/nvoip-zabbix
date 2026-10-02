@@ -278,7 +278,8 @@ zabbix_export:
                         language: this.requireValue(params, 'nvoip_whatsapp_language'),
                         destination: target.destination,
                         bodyVariables: this.whatsappVariables(params),
-                        headerVariables: []
+                        headerVariables: [],
+                        functions: {openAttendance: false, to_flow: false}
                     }
                 };
             },
