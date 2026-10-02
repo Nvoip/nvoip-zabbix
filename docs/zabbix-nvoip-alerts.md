@@ -3,7 +3,7 @@
 O arquivo `templates/media_nvoip.yaml` contém um media type Webhook para
 Zabbix 7.0 ou superior. Ele usa os endpoints atuais da API v3 da Nvoip:
 
-- `POST /v3/sms`;
+- `POST /v3/sms/sendTemplate`;
 - `POST /v3/wa/templateMessages`, sempre com template aprovado;
 - `POST /v3/torpedo/voice`.
 
@@ -60,6 +60,32 @@ voice:5511999999999
 SMS aceita 11 a 16 dígitos, WhatsApp aceita 8 a 20 e chamada aceita 8 a 13.
 O sinal `+` inicial é opcional e não é enviado à API.
 
+### SMS com modelos aprovados
+
+No Painel Nvoip, abra **Templates > SMS**, selecione os modelos aprovados
+`zabbix_problema`, `zabbix_recuperado` e `zabbix_atualizado` e salve uma cópia
+para a sua conta. Configure os IDs dessas cópias nas macros abaixo; não use
+IDs do catálogo global nem de outra conta.
+
+| Macro | Modelo |
+| --- | --- |
+| `{$NVOIP.SMS.PROBLEM_TEMPLATE_ID}` | `zabbix_problema` |
+| `{$NVOIP.SMS.RECOVERY_TEMPLATE_ID}` | `zabbix_recuperado` |
+| `{$NVOIP.SMS.UPDATE_TEMPLATE_ID}` | `zabbix_atualizado` |
+
+Os textos e o contrato estão em [`sms_models.json`](../templates/sms_models.json).
+Cada modelo recebe cinco variáveis: nome do evento (40 caracteres), host (20),
+severidade (12), ID do evento (20) e data/hora (19). O Webhook limita cada
+variável e usa a data de problema, recuperação ou atualização correspondente.
+Uma atualização tem prioridade sobre a recuperação na seleção do modelo.
+O texto final tem até 159 caracteres. O endpoint exige template ativo e
+pertencente à conta OAuth. Alterações no texto exigem nova aprovação.
+
+Não é necessário liberar texto livre. O Webhook não usa `/sms` como fallback.
+A API deve fornecer `accepted` e `smsStatus` no retorno de `/sms/sendTemplate`;
+uma versão anterior que retorna somente “SMS sent successfully.” é recusada
+como resultado sem confirmação. Publique a API compatível antes do Webhook.
+
 ### WhatsApp
 
 Configure também, como macros secretas quando aplicável:
@@ -107,7 +133,13 @@ send_to=sms:5511999999999
 event_source=0
 event_value=1
 event_update_status=0
-event_id=TEST-3168
+event_id=TEST-5769
+event_name=Teste de alerta
+host_name=host-teste
+event_severity=Warning
+event_date=2026.10.01
+event_time=12:00:00
+nvoip_sms_problem_template_id=<ID da cópia aprovada>
 ```
 
 O resultado deve ser `status=dry_run`; nenhuma autenticação ou chamada HTTP é
@@ -133,8 +165,8 @@ tentativas; o texto de erro inclui fase, canal e HTTP status, nunca token ou
 corpo da resposta. O ID do evento segue na mensagem padrão para correlação com
 os logs da Nvoip.
 
-No SMS, HTTP 200 só é aceito com `status=200 - SMS Enviado com Sucesso` no
-JSON. HTML, JSON inválido e respostas de rejeição funcional falham, inclusive
+No SMS, HTTP 200 só é aceito com `accepted=true` e
+`smsStatus=200 - SMS Enviado com Sucesso` no JSON. HTML, JSON inválido e respostas de rejeição funcional falham, inclusive
 quando HTTP é 200. `status=sent` no resultado do Webhook significa aceitação
 pela API; `delivery_confirmed=false` distingue isso de recebimento no celular.
 Não cadastrar o `token_auth` de scripts antigos como bearer OAuth. Consulte o

@@ -3,7 +3,7 @@
 The `templates/media_nvoip.yaml` file contains a webhook media type for Zabbix
 7.0 and later compatible 7.x releases. It uses these Nvoip API v3 endpoints:
 
-- `POST /v3/sms`;
+- `POST /v3/sms/sendTemplate`;
 - `POST /v3/wa/templateMessages`, with an approved template;
 - `POST /v3/torpedo/voice`.
 
@@ -58,6 +58,31 @@ voice:5511999999999
 
 An optional leading `+` is accepted and is removed before sending the request.
 
+### SMS with approved models
+
+In the Nvoip panel, open **Templates > SMS**, choose `zabbix_problema`,
+`zabbix_recuperado`, and `zabbix_atualizado`, and save account-owned copies.
+Configure those copy IDs below, rather than global catalog or other account IDs.
+
+| Macro | Model |
+| --- | --- |
+| `{$NVOIP.SMS.PROBLEM_TEMPLATE_ID}` | `zabbix_problema` |
+| `{$NVOIP.SMS.RECOVERY_TEMPLATE_ID}` | `zabbix_recuperado` |
+| `{$NVOIP.SMS.UPDATE_TEMPLATE_ID}` | `zabbix_atualizado` |
+
+The model text and variable contract are in
+[`sms_models.json`](../templates/sms_models.json). Each model takes five
+variables: event name (40 characters), host (20), severity (12), event ID (20),
+and timestamp (19). The webhook bounds these values and uses the timestamp
+of the problem, recovery, or update. Updates take precedence over recovery.
+The final SMS is at most 159 characters. The endpoint requires an active
+account-owned template. Editing its text requires approval again.
+
+Free-text permission is unnecessary. There is no fallback to `/sms`.
+The API must return `accepted` and `smsStatus` for `/sms/sendTemplate`;
+an older API returning only “SMS sent successfully.” is rejected as unconfirmed.
+Deploy the compatible API before installing this webhook.
+
 ### WhatsApp
 
 Configure these account-specific macros:
@@ -105,7 +130,13 @@ send_to=sms:5511999999999
 event_source=0
 event_value=1
 event_update_status=0
-event_id=TEST-3168
+event_id=TEST-5769
+event_name=Alert test
+host_name=test-host
+event_severity=Warning
+event_date=2026.10.01
+event_time=12:00:00
+nvoip_sms_problem_template_id=<approved account copy ID>
 ```
 
 The expected result is `status=dry_run`, with no authentication or HTTP
@@ -132,7 +163,7 @@ HTTP `408`, `425`, `429`, and `5xx` responses are classified as
 contains the phase, channel, and HTTP status, but never the provider response
 body or access token.
 
-SMS requires `status=200 - SMS Enviado com Sucesso` in a valid JSON response.
+SMS requires `accepted=true` and `smsStatus=200 - SMS Enviado com Sucesso` in a valid JSON response.
 An HTTP 200 containing a business rejection is a failure. Webhook `status=sent`
 means API acceptance; `delivery_confirmed=false` distinguishes it from handset
 receipt. Do not reuse a historical `token_auth` credential as an OAuth bearer.

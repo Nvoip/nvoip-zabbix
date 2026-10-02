@@ -31,6 +31,12 @@ def default_params(**overrides):
         "alert_subject": "Problem: API latency",
         "event_date": "2026.08.27",
         "event_id": "3168001",
+        "event_name": "API latency",
+        "event_severity": "High",
+        "event_recovery_date": "2026.08.27",
+        "event_recovery_time": "16:40:00",
+        "event_update_date": "2026.08.27",
+        "event_update_time": "16:35:00",
         "event_nseverity": "4",
         "event_source": "0",
         "event_time": "16:30:00",
@@ -47,7 +53,9 @@ def default_params(**overrides):
         "nvoip_oauth_client_credential": "dummy",
         "nvoip_oauth_scopes": "sms:send call:make",
         "nvoip_retryable_http_codes": "408,425,429,500,502,503,504",
-        "nvoip_sms_max_chars": "160",
+        "nvoip_sms_problem_template_id": "1001",
+        "nvoip_sms_recovery_template_id": "1002",
+        "nvoip_sms_update_template_id": "1003",
         "nvoip_voice_caller": "1049",
         "nvoip_voice_max_chars": "600",
         "nvoip_voice_send_recovery": "0",
@@ -131,7 +139,7 @@ class NvoipMediaTypeTest(unittest.TestCase):
             with self.subTest(channel=channel):
                 result = run_webhook(
                     default_params(send_to=f"{channel}:5511999999999"),
-                    [oauth_response(), {"status": 200, "body": '{"status":"200 - SMS Enviado com Sucesso"}'}],
+                    [oauth_response(), {"status": 200, "body": '{"accepted":true,"smsStatus":"200 - SMS Enviado com Sucesso"}'}],
                 )
                 self.assertTrue(result["output"]["ok"])
                 self.assertEqual(len(result["calls"]), 2)
@@ -165,10 +173,10 @@ class NvoipMediaTypeTest(unittest.TestCase):
 
     def test_sms_oauth_and_payload_preserve_special_characters(self):
         result = run_webhook(
-            default_params(alert_message='Text: "çãõ" ' + ("x" * 300)),
+            default_params(event_name='Text: "çãõ" ' + ("x" * 300)),
             [
                 oauth_response(),
-                {"status": 200, "body": '{"id":3168,"status":"200 - SMS Enviado com Sucesso"}'},
+                {"status": 200, "body": '{"id":3168,"accepted":true,"smsStatus":"200 - SMS Enviado com Sucesso"}'},
             ],
         )
         self.assertTrue(result["output"]["ok"])
@@ -180,9 +188,12 @@ class NvoipMediaTypeTest(unittest.TestCase):
         self.assertEqual(len(result["calls"]), 2)
 
         payload = json.loads(result["calls"][1]["body"])
-        self.assertEqual(payload["numberPhone"], "5511999999999")
-        self.assertIn('Text: "çãõ"', payload["message"])
-        self.assertEqual(len(payload["message"]), 160)
+        self.assertEqual(payload["phoneNumber"], "5511999999999")
+        self.assertIn('Text: "çãõ"', payload["variables"][0])
+        self.assertEqual(len(payload["variables"][0]), 40)
+        self.assertEqual(payload["templateId"], 1001)
+        self.assertEqual(payload["variables"][1:], ["api-01", "High", "3168001", "2026-08-27 16:30:00"])
+        self.assertEqual(result["calls"][1]["url"], "https://api.nvoip.test/v3/sms/sendTemplate")
 
         visible = json.dumps({"logs": result["logs"], "output": result["output"]})
         oauth_call = result["calls"][0]
@@ -274,8 +285,9 @@ class NvoipMediaTypeTest(unittest.TestCase):
     def test_sms_http_200_without_api_acceptance_fails(self):
         for response in (
             'Just a moment...', '{}', 'null', '[]',
-            '{"status":"400 - Saldo Insuficiente","mensagem":"private-text"}',
-            '{"status":"500 - Erro ao enviar SMS","mensagem":"private-text"}',
+            '{"accepted":false,"smsStatus":"400 - Saldo Insuficiente","mensagem":"private-text"}',
+            '{"status":200,"message":"SMS sent successfully."}',
+            '{"accepted":false,"smsStatus":"500 - Erro ao enviar SMS","mensagem":"private-text"}',
         ):
             with self.subTest(response=response):
                 result = run_webhook(default_params(), [oauth_response(), {"status": 200, "body": response}])
@@ -299,11 +311,45 @@ class NvoipMediaTypeTest(unittest.TestCase):
         self.assertFalse(result['output']['ok'])
         self.assertEqual(result['calls'], [])
 
+    def test_sms_event_modes_select_their_approved_template(self):
+        for overrides, template_id, timestamp in [
+            ({}, 1001, "2026-08-27 16:30:00"),
+            ({"event_value": "0"}, 1002, "2026-08-27 16:40:00"),
+            ({"event_value": "0", "event_update_status": "1"}, 1003, "2026-08-27 16:35:00"),
+        ]:
+            result = run_webhook(default_params(**overrides), [oauth_response(), {"status":200,"body":'{"accepted":true,"smsStatus":"200 - SMS Enviado com Sucesso"}'}])
+            self.assertTrue(result["output"]["ok"])
+            payload = json.loads(result["calls"][1]["body"])
+            self.assertEqual(payload["templateId"], template_id)
+            self.assertEqual(payload["variables"][-1], timestamp)
+            self.assertNotIn("message", payload)
+
+    def test_sms_missing_template_or_event_macro_does_not_send(self):
+        for overrides in [
+            {"nvoip_sms_problem_template_id":"{$NVOIP.SMS.PROBLEM_TEMPLATE_ID}"},
+            {"nvoip_sms_problem_template_id":"0"},
+            {"event_name":"{EVENT.NAME}"},
+            {"event_recovery_date":"{EVENT.RECOVERY.DATE}","event_value":"0"},
+        ]:
+            result = run_webhook(default_params(**overrides), [])
+            self.assertFalse(result["output"]["ok"])
+            self.assertEqual(result["calls"], [])
+
+    def test_approved_sms_models_fit_after_variable_expansion(self):
+        catalog = json.loads((ROOT/"templates/sms_models.json").read_text())
+        for model in catalog["models"]:
+            result = run_webhook(default_params(event_name="x"*80,host_name="h"*80,event_severity="s"*80,event_id="1"*80,event_value="0" if model["event"]=="recovery" else "1",event_update_status="1" if model["event"]=="update" else "0"), [oauth_response(),{"status":200,"body":'{"accepted":true,"smsStatus":"200 - SMS Enviado com Sucesso"}'}])
+            body=model["bodyText"]
+            for index,value in enumerate(json.loads(result["calls"][1]["body"])["variables"],1):
+                body=body.replace("{{"+str(index)+"}}",value)
+            self.assertLessEqual(len(body),160)
+            self.assertNotIn("{{",body)
+
     def test_sms_boundary_does_not_split_surrogate_pair(self):
-        result = run_webhook(default_params(alert_subject='', alert_message='x' * 159 + '🙂'),
-            [oauth_response(), {'status': 200, 'body': '{"status":"200 - SMS Enviado com Sucesso"}'}])
+        result = run_webhook(default_params(event_name='x' * 39 + '🙂'),
+            [oauth_response(), {'status': 200, 'body': '{"accepted":true,"smsStatus":"200 - SMS Enviado com Sucesso"}'}])
         self.assertTrue(result['output']['ok'])
-        self.assertEqual(json.loads(result['calls'][1]['body'])['message'], 'x' * 159)
+        self.assertEqual(json.loads(result['calls'][1]['body'])['variables'][0], 'x' * 39)
 
 
 if __name__ == "__main__":
