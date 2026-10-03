@@ -1,0 +1,156 @@
+{
+  "uid": "nn5258-mail-rejections",
+  "title": "E-mails — rejeições técnicas por template",
+  "tags": [
+    "NN-5258",
+    "e-mails"
+  ],
+  "schemaVersion": 40,
+  "version": 1,
+  "editable": true,
+  "timezone": "browser",
+  "refresh": "5m",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Últimas 24 h por template e status (hora)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "mysql",
+        "uid": "000000007"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "000000007"
+          },
+          "rawSql": "/* NN-5258 - Série por template e status de envio nos últimos 24 h.\n\n   Não projeta destinatário, conta, assunto, corpo nem identificador de usuário.\n   O filtro por date_created usa o índice existente idx_date_created.\n*/\nWITH recent_messages AS (\n  SELECT\n    FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(date_created) / 3600) * 3600) AS time,\n    id_template,\n    sent,\n    COALESCE(NULLIF(status_bounce, ''), 'sem_status') AS status_bounce,\n    CASE\n      WHEN sent = -1\n       AND (\n         status_bounce LIKE 'invalid:%'\n         OR status_bounce LIKE 'lim:%'\n         OR status_bounce = 'processing_failed'\n       ) THEN 1\n      ELSE 0\n    END AS technical_rejection\n  FROM desenvolvimento.mail_sender FORCE INDEX (idx_date_created)\n  WHERE date_created >= NOW() - INTERVAL 1 DAY\n    AND id_template IS NOT NULL\n)\nSELECT\n  time,\n  CAST(id_template AS CHAR) AS template_id,\n  CAST(sent AS CHAR) AS send_state,\n  status_bounce,\n  COUNT(*) AS messages_with_status_24h,\n  SUM(technical_rejection) AS technical_rejections_24h\nFROM recent_messages\nGROUP BY time, id_template, sent, status_bounce\nORDER BY time, id_template, sent, status_bounce;\n",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 30
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Volume e rejeição técnica por template — 24 h",
+      "type": "table",
+      "datasource": {
+        "type": "mysql",
+        "uid": "000000007"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "000000007"
+          },
+          "rawSql": "/* NN-5258 - Valores por template para as duas regras de alerta Grafana.\n\n   technical_rejection_pct_24h alimenta a regra >1% OU >20 rejeições.\n   technical_rejection_pct_24h = 100 alimenta a regra separada de rejeição\n   técnica integral. A consulta não retorna dados de destinatários ou contas.\n*/\nWITH recent_messages AS (\n  SELECT\n    id_template,\n    CASE\n      WHEN sent = -1\n       AND (\n         status_bounce LIKE 'invalid:%'\n         OR status_bounce LIKE 'lim:%'\n         OR status_bounce = 'processing_failed'\n       ) THEN 1\n      ELSE 0\n    END AS technical_rejection\n  FROM desenvolvimento.mail_sender FORCE INDEX (idx_date_created)\n  WHERE date_created >= NOW() - INTERVAL 1 DAY\n    AND id_template IS NOT NULL\n)\nSELECT\n  id_template AS template_id,\n  SUM(technical_rejection) AS technical_rejections_24h,\n  COUNT(*) AS messages_24h,\n  100 * SUM(technical_rejection) / COUNT(*) AS technical_rejection_pct_24h\nFROM recent_messages\nGROUP BY id_template\nHAVING COUNT(*) > 0\nORDER BY id_template;\n",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "technical_rejection_pct_24h"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 4
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "id": 3,
+      "title": "Estado das duas regras de rejeição técnica",
+      "type": "alertlist",
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 24,
+        "h": 7
+      },
+      "options": {
+        "dashboardAlerts": true,
+        "showOptions": "current",
+        "maxItems": 20,
+        "stateFilter": {
+          "firing": true,
+          "pending": true,
+          "noData": true,
+          "normal": true,
+          "error": true
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Critérios e entrega de notificação",
+      "type": "text",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 24,
+        "h": 5
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Rejeição técnica: `sent=-1` com `invalid:*`, `lim:*` ou `processing_failed`. Regra 1: >1% **ou** >20 em 24 h, sem arredondar o limiar. Regra 2: 100% do template. Bounce real fica fora do numerador.\n\n**As regras são avaliadas; notificações estão silenciadas até configurar um destinatário operacional válido.** O receiver existente é um endereço de exemplo. [Servidor E-mails](/grafana/d/saJohhCIk)"
+      }
+    }
+  ]
+}

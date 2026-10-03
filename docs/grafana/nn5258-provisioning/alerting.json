@@ -1,0 +1,157 @@
+{
+  "apiVersion": 1,
+  "muteTimes": [
+    {
+      "orgId": 1,
+      "name": "NN-5258-pending-contact",
+      "time_intervals": [
+        {
+          "times": [
+            {
+              "start_time": "00:00",
+              "end_time": "24:00"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "orgId": 1,
+      "name": "NN-5258-mail-sender",
+      "folder": "Nvoip",
+      "interval": "300s",
+      "rules": [
+        {
+          "uid": "nn5258-threshold",
+          "title": "NN-5258 — rejeição técnica >1% ou >20 em 24 h",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "datasourceUid": "000000007",
+              "relativeTimeRange": {
+                "from": 86400,
+                "to": 0
+              },
+              "model": {
+                "refId": "A",
+                "datasource": {
+                  "type": "mysql",
+                  "uid": "000000007"
+                },
+                "rawSql": "/* NN-5258 - Uma medida numérica por template para alerta multidimensional. */\nWITH recent_messages AS (\n  SELECT id_template,\n    CASE WHEN sent = -1 AND (status_bounce LIKE 'invalid:%'\n      OR status_bounce LIKE 'lim:%' OR status_bounce = 'processing_failed')\n      THEN 1 ELSE 0 END AS technical_rejection\n  FROM desenvolvimento.mail_sender FORCE INDEX (idx_date_created)\n  WHERE date_created >= NOW() - INTERVAL 1 DAY AND id_template IS NOT NULL\n)\nSELECT CAST(id_template AS CHAR) AS template_id,\n  CAST((SUM(technical_rejection) > 20 OR SUM(technical_rejection) * 100 > COUNT(*)) AS DECIMAL(10,0)) AS alert_value\nFROM recent_messages\nGROUP BY id_template\nORDER BY id_template;\n",
+                "format": "table",
+                "rawQuery": true,
+                "editorMode": "code"
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "model": {
+                "refId": "B",
+                "type": "math",
+                "expression": "$A > 0",
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            }
+          ],
+          "dashboardUid": "nn5258-mail-rejections",
+          "panelId": 2,
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "0s",
+          "isPaused": false,
+          "labels": {
+            "jira": "NN-5258",
+            "service": "mail-sender"
+          },
+          "annotations": {
+            "summary": "Template {{ $labels.template_id }}: rejeição técnica nas últimas 24 h"
+          },
+          "notification_settings": {
+            "receiver": "grafana-default-email",
+            "mute_time_intervals": [
+              "NN-5258-pending-contact"
+            ]
+          }
+        },
+        {
+          "uid": "nn5258-total",
+          "title": "NN-5258 — template com 100% de rejeição técnica em 24 h",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "datasourceUid": "000000007",
+              "relativeTimeRange": {
+                "from": 86400,
+                "to": 0
+              },
+              "model": {
+                "refId": "A",
+                "datasource": {
+                  "type": "mysql",
+                  "uid": "000000007"
+                },
+                "rawSql": "/* NN-5258 - Uma medida numérica por template para alerta multidimensional. */\nWITH recent_messages AS (\n  SELECT id_template,\n    CASE WHEN sent = -1 AND (status_bounce LIKE 'invalid:%'\n      OR status_bounce LIKE 'lim:%' OR status_bounce = 'processing_failed')\n      THEN 1 ELSE 0 END AS technical_rejection\n  FROM desenvolvimento.mail_sender FORCE INDEX (idx_date_created)\n  WHERE date_created >= NOW() - INTERVAL 1 DAY AND id_template IS NOT NULL\n)\nSELECT CAST(id_template AS CHAR) AS template_id,\n  CAST((SUM(technical_rejection) > 0 AND SUM(technical_rejection) = COUNT(*)) AS DECIMAL(10,0)) AS alert_value\nFROM recent_messages\nGROUP BY id_template\nORDER BY id_template;\n",
+                "format": "table",
+                "rawQuery": true,
+                "editorMode": "code"
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "model": {
+                "refId": "B",
+                "type": "math",
+                "expression": "$A > 0",
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            }
+          ],
+          "dashboardUid": "nn5258-mail-rejections",
+          "panelId": 2,
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "0s",
+          "isPaused": false,
+          "labels": {
+            "jira": "NN-5258",
+            "service": "mail-sender"
+          },
+          "annotations": {
+            "summary": "Template {{ $labels.template_id }}: rejeição técnica nas últimas 24 h"
+          },
+          "notification_settings": {
+            "receiver": "grafana-default-email",
+            "mute_time_intervals": [
+              "NN-5258-pending-contact"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "apiVersion": 1,
+  "providers": [
+    {
+      "name": "nn5258-mail-sender",
+      "orgId": 1,
+      "folder": "Nvoip",
+      "type": "file",
+      "disableDeletion": false,
+      "updateIntervalSeconds": 30,
+      "allowUiUpdates": true,
+      "options": {
+        "path": "/var/lib/grafana/dashboards-nn5258",
+        "foldersFromFilesStructure": false
+      }
+    }
+  ]
+}

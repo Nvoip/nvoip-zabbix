@@ -24,7 +24,7 @@ SELECT
   id_template AS template_id,
   SUM(technical_rejection) AS technical_rejections_24h,
   COUNT(*) AS messages_24h,
-  ROUND(100 * SUM(technical_rejection) / COUNT(*), 2) AS technical_rejection_pct_24h
+  100 * SUM(technical_rejection) / COUNT(*) AS technical_rejection_pct_24h
 FROM recent_messages
 GROUP BY id_template
 HAVING COUNT(*) > 0

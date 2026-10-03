@@ -1,42 +1,44 @@
-# Monitor de rejeição técnica por template (NN-5258)
+# Rejeição técnica por template — NN-5258
 
-Alvo: dashboard Grafana `Servidor E-mails` (`saJohhCIk`), datasource
-`Desenvolvimento` (`000000007`, MySQL), sem criar uma notificação real nesta
-entrega. A auditoria somente leitura confirmou que os painéis 2, 4 e 8 desse
-dashboard já consultam `desenvolvimento.mail_sender`.
+O dashboard dedicado `nn5258-mail-rejections`, na pasta Nvoip, usa a datasource
+MySQL Desenvolvimento (`000000007`). O dashboard anterior `Servidor E-mails`
+(`saJohhCIk`) continua acessível pelo link do painel.
 
-`mail-sender-technical-rejection-series.sql` fornece a série por template e
-`status_bounce`. `mail-sender-technical-rejection-alerts.sql` fornece um valor
-por template para as regras. Ambas usam a janela móvel de 24 horas e classificam
-como rejeição técnica somente `sent = -1` com `invalid:%`, `lim:%` ou
-`processing_failed`. Outros bounces e estados permanecem visíveis na série,
-mas não contam no numerador.
+A série agrupa hora, template, estado e status. As métricas usam a janela móvel
+de 24 horas e classificam como rejeição técnica somente `sent=-1` com
+`invalid:*`, `lim:*` ou `processing_failed`. Bounces reais ficam fora do numerador.
+As consultas não retornam destinatários, contas, assunto ou corpo.
 
-## Configuração manual no Grafana
+A regra `nn5258-threshold` dispara quando `technical_rejection_pct_24h > 1`
+**ou** `technical_rejections_24h > 20`; compara contagens sem arredondar a taxa.
+A regra separada `nn5258-total` corresponde a `technical_rejection_pct_24h = 100`.
+Cada consulta de alerta retorna um rótulo de template e uma única medida numérica,
+adequada ao alerta multidimensional. As regras são avaliadas a cada cinco minutos.
 
-1. Faça backup do JSON atual do dashboard `saJohhCIk` e registre a versão.
-2. Crie um painel de tabela ou barras com
-   `mail-sender-technical-rejection-series.sql`; use `template_id` e
-   `status_bounce` como dimensões e `messages_with_status_24h` como valor.
-3. Crie uma regra de alerta multi-dimensional usando a consulta de alertas. Por
-   `template_id`, dispare quando
-   `technical_rejection_pct_24h > 1` **ou** `technical_rejections_24h > 20`.
-4. Crie outra regra, separada da anterior, para o mesmo conjunto de séries:
-   dispare quando `technical_rejection_pct_24h = 100`. Mantenha-a separada
-   para identificar perda integral de um template mesmo quando o volume for
-   menor que 20.
-5. Inicialmente deixe ambas as regras sem contact point; valide o preview com
-   dados de produção somente leitura e então associe a política de notificação
-   autorizada pelo responsável operacional.
+## Publicação
 
-## Publicação e rollback
+Execute `python3 tools/grafana/build_nn5258_provisioning.py` para gerar os artefatos.
+Use o instalador revisado com um diretório de staging que contenha esses três arquivos.
+Ele cria apenas o provider, dashboard e regras desta entrega; faz backup consistente
+antes de reiniciar o Grafana e restaura seus próprios arquivos em falha de health.
+O provider precisa da extensão `.yaml`, embora o conteúdo JSON seja YAML válido.
 
-Esta alteração apenas versiona SQL e o roteiro; não altera Grafana nem envia
-notificações. A publicação exige aplicar manualmente os dois painéis/regras no
-Grafana. O rollback é restaurar o JSON salvo do dashboard e remover as duas
-regras pelo UID criado na publicação.
+O receiver encontrado em produção usa `example@email.com`. As duas regras mantêm
+um mute interval próprio, integral, até existir destinatário operacional válido.
+O estado dos alertas continua visível no Grafana. Não usar o endereço de exemplo
+para teste nem considerar uma entrega de e-mail comprovada.
 
-Migration/SQL: none. As consultas são `SELECT` somente leitura contra
-`desenvolvimento.mail_sender`; não há migration.
+## Validação
 
-Passo manual: configurar painel e regras no Grafana após revisão.
+As quatro consultas completas devem passar `PREPARE` em sessão read-only no Aurora.
+A fixture MySQL 8/Grafana 11.6.14 testa 1,0005%, exatamente 1%, mais de vinte,
+100%, bounce real, template nulo e mensagens fora da janela; SMTP fica desabilitado.
+Em produção, conferir os dois UIDs, datasource, painel, avaliação sem erro e mute.
+
+Migration/SQL: none. São consultas SELECT, sem alteração de tabelas.
+Passo manual: nenhum para criar os artefatos; configurar destinatário operacional
+é necessário para entrega externa de notificações.
+
+Rollback: retirar apenas o provider/dashboard/arquivo de regras NN-5258, provisionar
+`deleteRules` para os dois UIDs e remover o mute próprio por `deleteMuteTimes`.
+Não restaurar toda a base Grafana sobre alterações concorrentes.
