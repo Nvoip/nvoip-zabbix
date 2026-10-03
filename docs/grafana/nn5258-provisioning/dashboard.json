@@ -125,8 +125,13 @@
         "h": 7
       },
       "options": {
-        "dashboardAlerts": true,
-        "showOptions": "current",
+        "dashboardAlerts": false,
+        "alertName": "NN-5258",
+        "alertInstanceLabelFilter": "{jira=\"NN-5258\"}",
+        "showInstances": true,
+        "groupMode": "default",
+        "viewMode": "list",
+        "sortOrder": 1,
         "maxItems": 20,
         "stateFilter": {
           "firing": true,

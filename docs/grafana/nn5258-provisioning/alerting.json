@@ -78,6 +78,8 @@
             "service": "mail-sender"
           },
           "annotations": {
+            "__dashboardUid__": "nn5258-mail-rejections",
+            "__panelId__": "2",
             "summary": "Template {{ $labels.template_id }}: rejeição técnica nas últimas 24 h"
           },
           "notification_settings": {
@@ -142,6 +144,8 @@
             "service": "mail-sender"
           },
           "annotations": {
+            "__dashboardUid__": "nn5258-mail-rejections",
+            "__panelId__": "2",
             "summary": "Template {{ $labels.template_id }}: rejeição técnica nas últimas 24 h"
           },
           "notification_settings": {
