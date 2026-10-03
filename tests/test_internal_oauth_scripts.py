@@ -38,6 +38,27 @@ class OAuthScriptsTest(unittest.TestCase):
             self.assertNotIn("napikey", req.full_url)
             self.assertNotIn("/v2", req.full_url)
 
+    def test_native_five_variables_select_recovery_and_update_without_message_leaks(self):
+        env = dict(self.env, NVOIP_SMS_TEMPLATE_LAYOUT="zabbix", NVOIP_SMS_PROBLEM_TEMPLATE_ID="2988",
+                   NVOIP_SMS_RECOVERY_TEMPLATE_ID="2989", NVOIP_SMS_UPDATE_TEMPLATE_ID="2990")
+        for value, updated, expected in [("1", "0", 2988), ("0", "0", 2989), ("1", "1", 2990)]:
+            self.requests.clear()
+            fields = ["Very long event " * 5, "server", "High", "77", "2026.10.03 12:00:00",
+                      value, updated, "2026.10.03 13:00:00", "2026.10.03 14:00:00"]
+            api.send("sms", ["5511999999999", "subject", "private-message", "\t".join(fields)], env, self.transport)
+            payload = json.loads(self.requests[-1].data)
+            self.assertEqual(payload["templateId"], expected)
+            self.assertEqual(len(payload["variables"]), 5)
+            self.assertEqual(len(payload["variables"][0]), 40)
+            self.assertNotIn("private-message", str(payload))
+            self.assertEqual(payload["variables"][-1], "2026-10-03 " + ("14" if updated == "1" else "13" if value == "0" else "12") + ":00:00")
+
+    def test_missing_event_macros_block_before_token_and_send(self):
+        env = dict(self.env, NVOIP_SMS_TEMPLATE_LAYOUT="zabbix", NVOIP_SMS_PROBLEM_TEMPLATE_ID="2988")
+        with self.assertRaises(api.ApiError):
+            api.send("sms", ["5511999999999", "subject", "message", "{HOST.NAME1}"], env, self.transport)
+        self.assertEqual(self.requests, [])
+
     def test_password_only_credentials_block_before_http(self):
         with self.assertRaises(api.ApiError):
             api.send("check", [], {"NVOIP_NUMBERSIP":"112544001", "NVOIP_USER_TOKEN":"legacy"}, self.transport)

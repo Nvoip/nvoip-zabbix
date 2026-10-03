@@ -67,9 +67,24 @@ def send(mode, args, env, transport=None):
             template = required(env, "NVOIP_SMS_TEMPLATE_ID")
             if not template.isdecimal() or not 0 < int(template) <= 2147483647:
                 raise ApiError("NVOIP_SMS_TEMPLATE_ID must be a positive template ID")
-            # Configure an approved template with these three ordered variables.
-            payload = {"templateId": int(template), "phoneNumber": args[0],
-                       "variables": [args[1], args[2], args[3] if len(args) > 3 else ""]}
+            variables = [args[1], args[2], args[3] if len(args) > 3 else ""]
+            if env.get("NVOIP_SMS_TEMPLATE_LAYOUT") == "zabbix":
+                if len(args) != 4 or len(args[3].split("\t")) != 9:
+                    raise ApiError("Expected the nine Zabbix event metadata fields")
+                name, host, severity, event_id, when, value, updated, recovered_when, updated_when = args[3].split("\t")
+                mode = "update" if updated == "1" else ("recovery" if value == "0" else "problem")
+                template = required(env, "NVOIP_SMS_" + mode.upper() + "_TEMPLATE_ID")
+                if not template.isdecimal() or not 0 < int(template) <= 2147483647:
+                    raise ApiError("Invalid approved Zabbix template ID")
+                when = updated_when if mode == "update" else recovered_when if mode == "recovery" else when
+                if not re.fullmatch(r"[0-9]{4}\.[0-9]{2}\.[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}", when):
+                    raise ApiError("Invalid Zabbix event date/time")
+                fields = [name, host, severity, event_id]
+                if any(not field.strip() or re.search(r"\{(?:EVENT|HOST)\.", field) for field in fields):
+                    raise ApiError("Unresolved Zabbix event metadata")
+                variables = [" ".join(field.split())[:limit] for field, limit in zip(fields, [40, 20, 12, 20])]
+                variables.append(when.replace(".", "-"))
+            payload = {"templateId": int(template), "phoneNumber": args[0], "variables": variables}
             path = "/sms/sendTemplate"
         else:
             caller = required(env, "NVOIP_CALLER")

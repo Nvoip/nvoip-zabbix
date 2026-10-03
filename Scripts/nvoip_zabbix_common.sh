@@ -6,3 +6,11 @@ nvoip_require_command() {
     return 1
   fi
 }
+
+# Administrators can install this root-controlled file outside the web root.
+NVOIP_OAUTH_ENV_FILE="${NVOIP_OAUTH_ENV_FILE:-/etc/zabbix/nvoip-oauth.env}"
+if [ -r "$NVOIP_OAUTH_ENV_FILE" ]; then
+  set -a
+  . "$NVOIP_OAUTH_ENV_FILE"
+  set +a
+fi

@@ -74,3 +74,14 @@ O script de voz mantém os argumentos destino/assunto/mensagem e exige
 como segredo OAuth. Respostas/erros não imprimem o token nem o corpo do
 provedor. Redirecionamentos são recusados. Atualizar arquivos não configura
 as actions ou credenciais das instalações: siga o backup e o aceite acima.
+
+Na instalação interna, o ponto de entrada existente `send_sms_nvoip.sh` recebe
+este wrapper. A configuração protegida `/etc/zabbix/nvoip-oauth.env` seleciona
+`NVOIP_SMS_TEMPLATE_LAYOUT=zabbix` e os três IDs de templates aprovados. O
+quarto parâmetro do media type contém nove campos separados por TAB: nome do
+evento, host, severidade, ID, data/hora do problema, EVENT.VALUE,
+EVENT.UPDATE.STATUS, data/hora da recuperação e data/hora da atualização.
+O adaptador segue os limites e a ordem das cinco variáveis do Webhook nativo.
+Macros não resolvidas impedem o envio antes do OAuth. Actions, destinatários,
+horários e severidades continuam os mesmos. O comando `nvoip_api.py check`
+verifica OAuth sem criar mensagem ou chamada.
