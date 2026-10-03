@@ -20,7 +20,7 @@ class MailSenderTechnicalRejectionMonitorTest(unittest.TestCase):
             self.assertIn("status_bounce = 'processing_failed'", sql)
 
     def test_series_is_grouped_by_template_and_status_without_recipient_data(self):
-        self.assertIn("GROUP BY id_template, status_bounce", SERIES_SQL)
+        self.assertIn("GROUP BY time, id_template, sent, status_bounce", SERIES_SQL)
         self.assertIn("messages_with_status_24h", SERIES_SQL)
         for forbidden in ("toemail", "id_astpp", "id_user", "subject", "body"):
             self.assertNotIn(forbidden, SERIES_SQL.lower())

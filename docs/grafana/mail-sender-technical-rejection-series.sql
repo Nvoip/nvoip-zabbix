@@ -5,6 +5,7 @@
 */
 WITH recent_messages AS (
   SELECT
+    FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(date_created) / 3600) * 3600) AS time,
     id_template,
     sent,
     COALESCE(NULLIF(status_bounce, ''), 'sem_status') AS status_bounce,
@@ -22,10 +23,12 @@ WITH recent_messages AS (
     AND id_template IS NOT NULL
 )
 SELECT
-  id_template AS template_id,
+  time,
+  CAST(id_template AS CHAR) AS template_id,
+  CAST(sent AS CHAR) AS send_state,
   status_bounce,
   COUNT(*) AS messages_with_status_24h,
   SUM(technical_rejection) AS technical_rejections_24h
 FROM recent_messages
-GROUP BY id_template, status_bounce
-ORDER BY id_template, status_bounce;
+GROUP BY time, id_template, sent, status_bounce
+ORDER BY time, id_template, sent, status_bounce;
