@@ -58,3 +58,19 @@ estar aprovados na conta antes de ativá-lo. A API deve fornecer `accepted` e
 `smsStatus` em `/sms/sendTemplate`; publique essa versão antes do Webhook.
 passo manual: importar o Webhook, configurar OAuth, testar o destinatário
 permitido e migrar as associações das actions conforme a sequência acima.
+
+## Scripts operacionais atualizados (NN-5546)
+
+Os três pontos de entrada em `Scripts/` também usam OAuth `client_credentials`
+em `/auth/oauth2/token`, sem ramal/usertoken ou token da v2. Requerem Python 3
+no servidor. Configure `NVOIP_OAUTH_CLIENT_ID` e `NVOIP_OAUTH_CLIENT_SECRET`
+no cofre/ambiente da instalação; use escopos `sms:send` e/ou `call:make`
+conforme o canal. O script de SMS exige `NVOIP_SMS_TEMPLATE_ID` de um modelo
+aprovado com três variáveis, na ordem: assunto, mensagem e host. Revise o
+comprimento total no modelo, sem cortar variáveis silenciosamente.
+
+O script de voz mantém os argumentos destino/assunto/mensagem e exige
+`NVOIP_CALLER` autorizado. Não reutilize `token_auth`, napikey ou o usertoken
+como segredo OAuth. Respostas/erros não imprimem o token nem o corpo do
+provedor. Redirecionamentos são recusados. Atualizar arquivos não configura
+as actions ou credenciais das instalações: siga o backup e o aceite acima.

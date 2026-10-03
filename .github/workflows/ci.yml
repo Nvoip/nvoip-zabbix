@@ -32,6 +32,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate shell syntax
-        run: sh -n Scripts/*.sh
+        run: for script in Scripts/*.sh; do sh -n "$script" || exit; done
       - name: Validate monitoring templates
         run: python3 -m unittest discover -s tests -p 'test_*.py'

@@ -78,8 +78,8 @@ step.
 
 ## Legacy and Nvoip operational content
 
-The scripts in [`Scripts/`](Scripts/) remain available as historical content
-for existing installations. New installations and migrations should use the
+The scripts in [`Scripts/`](Scripts/) now use central OAuth and API v3
+for existing installations. Configure an OAuth client and an approved SMS template before enabling the scripts. New installations and migrations should use the
 native API v3 webhook above; see the
 [native migration guide](docs/native-migration.md) for replacing script media
 types while preserving action filters and recipients.
