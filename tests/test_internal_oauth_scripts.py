@@ -39,6 +39,23 @@ class OAuthScriptsTest(unittest.TestCase):
             self.assertNotIn("napikey", req.full_url)
             self.assertNotIn("/v2", req.full_url)
 
+    def test_operational_channels_identify_token_and_api_requests(self):
+        expected = "Nvoip-Zabbix/1.0 (+https://github.com/Nvoip/nvoip-zabbix)"
+        for mode, args in [("sms", ["5511999999999", "Alerta", "Problema"]),
+                           ("voice", ["5511999999999", "Alerta"]), ("check", [])]:
+            with self.subTest(mode=mode):
+                self.requests.clear()
+                self.result = ({"status": "queued"} if mode == "voice" else
+                               {"accepted": True, "smsStatus": "200 - SMS Enviado com Sucesso"})
+                api.send(mode, args, self.env, self.transport)
+                for request in self.requests:
+                    self.assertEqual(request.get_header("User-agent"), expected)
+                self.assertEqual(self.requests[0].get_header("Content-type"),
+                                 "application/x-www-form-urlencoded")
+                if mode != "check":
+                    self.assertEqual(self.requests[1].get_header("Authorization"), "Bearer fake-scoped")
+                    self.assertEqual(self.requests[1].get_header("X-nvoip-integration"), "zabbix")
+
     def test_native_five_variables_select_recovery_and_update_without_message_leaks(self):
         env = dict(self.env, NVOIP_SMS_TEMPLATE_LAYOUT="zabbix", NVOIP_SMS_PROBLEM_TEMPLATE_ID="2988",
                    NVOIP_SMS_RECOVERY_TEMPLATE_ID="2989", NVOIP_SMS_UPDATE_TEMPLATE_ID="2990")
