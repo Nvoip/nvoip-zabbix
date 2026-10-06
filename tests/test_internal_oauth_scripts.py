@@ -29,6 +29,7 @@ class OAuthScriptsTest(unittest.TestCase):
         self.assertEqual(len(self.requests), 2)
         auth, send = self.requests
         self.assertEqual(parse_qs(auth.data.decode())["grant_type"], ["client_credentials"])
+        self.assertEqual(parse_qs(auth.data.decode())["scope"], ["sms:send"])
         self.assertEqual(send.full_url, api.API_URL + "/sms/sendTemplate")
         self.assertEqual(send.get_header("Authorization"), "Bearer fake-scoped")
         self.assertEqual(json.loads(send.data), {"templateId":123, "phoneNumber":"5511999999999",
@@ -79,6 +80,7 @@ class OAuthScriptsTest(unittest.TestCase):
     def test_voice_uses_oauth_caller_and_v3_contract(self):
         self.result = {"status": "queued", "uuid": "synthetic-queue"}
         api.send("voice", ["5511999999999", "Alerta", "Falha"], self.env, self.transport)
+        self.assertEqual(parse_qs(self.requests[0].data.decode())["scope"], ["call:make"])
         self.assertEqual(self.requests[1].full_url, api.API_URL + "/torpedo/voice")
         self.assertEqual(json.loads(self.requests[1].data)["caller"], "112544001")
 
@@ -86,6 +88,24 @@ class OAuthScriptsTest(unittest.TestCase):
         self.result = {"status": "error"}
         with self.assertRaisesRegex(api.ApiError, "Voice API acceptance was not confirmed"):
             api.send("voice", ["5511999999999", "Alerta", "Falha"], self.env, self.transport)
+
+    def test_zabbix_event_rejection_is_not_success_for_any_sms_template(self):
+        env = dict(self.env, NVOIP_SMS_TEMPLATE_LAYOUT="zabbix", NVOIP_SMS_PROBLEM_TEMPLATE_ID="2988",
+                   NVOIP_SMS_RECOVERY_TEMPLATE_ID="2989", NVOIP_SMS_UPDATE_TEMPLATE_ID="2990")
+        self.result = {"accepted": False, "smsStatus": "403 - synthetic-sensitive-body"}
+        for value, updated in [("1", "0"), ("0", "0"), ("1", "1")]:
+            self.requests.clear()
+            metadata = "\t".join(["event", "host", "High", "77", "2026.10.06 12:00:00",
+                                  value, updated, "2026.10.06 13:00:00", "2026.10.06 14:00:00"])
+            with self.assertRaisesRegex(api.ApiError, "acceptance was not confirmed") as caught:
+                api.send("sms", ["5511999999999", "subject", "private-message", metadata], env, self.transport)
+            self.assertEqual(parse_qs(self.requests[0].data.decode())["scope"], ["sms:send"])
+            self.assertNotIn("sensitive", str(caught.exception))
+
+    def test_configuration_check_requests_both_supported_script_scopes_without_sending(self):
+        api.send("check", [], self.env, self.transport)
+        self.assertEqual(len(self.requests), 1)
+        self.assertEqual(parse_qs(self.requests[0].data.decode())["scope"], ["sms:send call:make"])
 
     def test_redirect_is_not_followed_with_a_credential(self):
         self.assertIsNone(api.NoRedirect().redirect_request(None, None, 302, "", {}, "https://other.test"))

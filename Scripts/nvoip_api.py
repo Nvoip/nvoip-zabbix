@@ -41,12 +41,13 @@ def request_json(url, payload, headers, transport=None):
         raise ApiError("Nvoip returned invalid JSON") from None
 
 
-def access_token(env, transport=None):
+def oauth_bearer(env, transport=None, scope="sms:send call:make"):
     # No password grant, numbersip/usertoken, or fallback to legacy credentials.
     body = urllib.parse.urlencode({
         "grant_type": "client_credentials",
         "client_id": required(env, "NVOIP_OAUTH_CLIENT_ID"),
         "client_secret": required(env, "NVOIP_OAUTH_CLIENT_SECRET"),
+        "scope": scope,
     }).encode()
     result = request_json(TOKEN_URL, body, {"Content-Type": "application/x-www-form-urlencoded"}, transport)
     token = result.get("access_token") if isinstance(result, dict) else None
@@ -72,11 +73,11 @@ def send(mode, args, env, transport=None):
                 if len(args) != 4 or len(args[3].split("\t")) != 9:
                     raise ApiError("Expected the nine Zabbix event metadata fields")
                 name, host, severity, event_id, when, value, updated, recovered_when, updated_when = args[3].split("\t")
-                mode = "update" if updated == "1" else ("recovery" if value == "0" else "problem")
-                template = required(env, "NVOIP_SMS_" + mode.upper() + "_TEMPLATE_ID")
+                event_mode = "update" if updated == "1" else ("recovery" if value == "0" else "problem")
+                template = required(env, "NVOIP_SMS_" + event_mode.upper() + "_TEMPLATE_ID")
                 if not template.isdecimal() or not 0 < int(template) <= 2147483647:
                     raise ApiError("Invalid approved Zabbix template ID")
-                when = updated_when if mode == "update" else recovered_when if mode == "recovery" else when
+                when = updated_when if event_mode == "update" else recovered_when if event_mode == "recovery" else when
                 if not re.fullmatch(r"[0-9]{4}\.[0-9]{2}\.[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}", when):
                     raise ApiError("Invalid Zabbix event date/time")
                 fields = [name, host, severity, event_id]
@@ -96,7 +97,8 @@ def send(mode, args, env, transport=None):
             path = "/torpedo/voice"
     elif mode != "check":
         raise ApiError("Unsupported operation")
-    token = access_token(env, transport)
+    scope = "sms:send" if mode == "sms" else "call:make" if mode == "voice" else "sms:send call:make"
+    token = oauth_bearer(env, transport, scope)
     if payload is None:
         return "Nvoip OAuth configuration OK."
     result = request_json(API_URL + path, json.dumps(payload, ensure_ascii=False).encode(),
