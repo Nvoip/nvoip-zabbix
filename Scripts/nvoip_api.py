@@ -9,6 +9,7 @@ import urllib.request
 
 API_URL = "https://api.nvoip.com.br/v3"
 TOKEN_URL = "https://api.nvoip.com.br/auth/oauth2/token"
+USER_AGENT = "Nvoip-Zabbix/1.0 (+https://github.com/Nvoip/nvoip-zabbix)"
 
 class ApiError(Exception):
     pass
@@ -26,7 +27,8 @@ def required(env, key):
 
 
 def request_json(url, payload, headers, transport=None):
-    request = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+    request_headers = dict(headers, **{"User-Agent": USER_AGENT})
+    request = urllib.request.Request(url, data=payload, headers=request_headers, method="POST")
     opener = transport or urllib.request.build_opener(NoRedirect()).open
     try:
         with opener(request, timeout=20) as response:
