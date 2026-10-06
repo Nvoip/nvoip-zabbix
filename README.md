@@ -84,6 +84,11 @@ native API v3 webhook above; see the
 [native migration guide](docs/native-migration.md) for replacing script media
 types while preserving action filters and recipients.
 
+The operational scripts request `sms:send` for SMS and `call:make` for voice.
+The configuration check requests both scopes; the OAuth client must already
+allow them. Problem, recovery, and update SMS responses all require explicit
+API acceptance before the script reports success.
+
 The native SMS webhook checks the API response as well as the HTTP status.
 An HTTP 200 containing an SMS rejection is a failure. API acceptance does not
 confirm delivery to the recipient's phone.
