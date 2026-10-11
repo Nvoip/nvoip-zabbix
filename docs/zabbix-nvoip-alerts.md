@@ -88,6 +88,9 @@ como resultado sem confirmação. Publique a API compatível antes do Webhook.
 
 ### WhatsApp
 
+Os alertas enviam `functions.openAttendance=false` e `functions.to_flow=false`
+para não abrir atendimento nem iniciar Flow ao enviar a notificação.
+
 Configure também, como macros secretas quando aplicável:
 
 | Macro | Uso |

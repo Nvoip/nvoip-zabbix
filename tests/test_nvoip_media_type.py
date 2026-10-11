@@ -219,6 +219,7 @@ class NvoipMediaTypeTest(unittest.TestCase):
         self.assertEqual(payload["instance"], "instance-1")
         self.assertEqual(payload["language"], "pt_BR")
         self.assertEqual(payload["destination"], "5511999999999")
+        self.assertEqual(payload["functions"], {"openAttendance": False, "to_flow": False})
         self.assertEqual(payload["bodyVariables"][1], 'Host: api-01\nText: "çãõ"')
 
     def test_voice_recovery_is_skipped_before_authentication(self):
