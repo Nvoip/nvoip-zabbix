@@ -16,9 +16,11 @@ serviços e não altera parâmetros das JVMs.
 
 Os Tomcats produtivos rodam como `root`. Por isso, um serviço `oneshot` também
 executado como `root` usa `jstat`, grava JSON atômico e sem segredos em
-`/run/nvoip-api-memory/metrics.json` com modo `0644`, e termina. O agente
-Zabbix lê o arquivo com a chave nativa `vfs.file.contents`; não recebe `sudo`,
-capabilities nem permissão para anexar à JVM.
+`/run/nvoip-api-memory/metrics.json` com modo `0644`, e termina. O Zabbix Server
+lê o arquivo pelo agente passivo com a chave nativa
+`vfs.file.contents`; o agente não recebe `sudo`, capabilities nem permissão
+para anexar à JVM. O modo passivo evita depender da porta 10051 de active
+checks e deve usar a interface já cadastrada para o host `Servidor API`.
 
 O timer mantém uma amostra por minuto. O timestamp fica dentro do JSON para o
 Zabbix detectar arquivo parado mesmo que o agente continue lendo a última
@@ -71,8 +73,10 @@ modo de arquivos já existentes.
 
 1. Importe `templates/template-nvoip-api-jvm-memory.json` no Zabbix 7.
 2. Vincule `Template Nvoip API JVM Memory` somente ao host `Servidor API`.
-3. Não habilite ação de restart, GC ou comunicação externa para estes triggers.
-4. Aguarde três amostras e confirme em **Monitoring > Latest data** os itens
+3. Confirme que o IP do Zabbix Server está autorizado em `Server=` no agente;
+   não amplie SG e preserve dono e modo do arquivo de configuração.
+4. Não habilite ação de restart, GC ou comunicação externa para estes triggers.
+5. Aguarde três amostras e confirme em **Monitoring > Latest data** os itens
    `nvoip.api.*` dos dois Tomcats.
 
 Importar e vincular o template altera o monitoramento produtivo e, portanto,

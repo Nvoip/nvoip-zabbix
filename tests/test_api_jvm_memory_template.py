@@ -31,9 +31,9 @@ class ApiJvmMemoryTemplateTest(unittest.TestCase):
         for uuid in uuids:
             self.assertRegex(uuid, r"^[0-9a-f]{32}$")
 
-    def test_uses_one_active_json_master_and_dependent_items(self):
+    def test_uses_one_passive_json_master_and_dependent_items(self):
         master = self.items[MASTER_KEY]
-        self.assertEqual("ZABBIX_ACTIVE", master["type"])
+        self.assertEqual("ZABBIX", master["type"])
         self.assertEqual("TEXT", master["value_type"])
         dependents = [
             item for item in self.template["items"] if item["type"] == "DEPENDENT"

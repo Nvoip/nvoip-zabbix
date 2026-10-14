@@ -22,7 +22,7 @@
           {
             "uuid": "fbc9d41c66f44220a1749e7fd0cd6b17",
             "name": "API memory collector: sample (JSON)",
-            "type": "ZABBIX_ACTIVE",
+            "type": "ZABBIX",
             "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]",
             "delay": "1m",
             "history": "1d",
