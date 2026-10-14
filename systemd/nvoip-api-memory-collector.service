@@ -1,0 +1,24 @@
+[Unit]
+Description=Nvoip API host and Tomcat memory collector for Zabbix
+Documentation=https://github.com/Nvoip/nvoip-zabbix/blob/master/docs/api-jvm-memory-monitoring.md
+After=tomcat.service tomcat9.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/local/libexec/nvoip_api_memory_collector.py
+RuntimeDirectory=nvoip-api-memory
+RuntimeDirectoryMode=0755
+RuntimeDirectoryPreserve=yes
+UMask=0022
+NoNewPrivileges=yes
+PrivateDevices=yes
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectSystem=strict
+ReadWritePaths=/run/nvoip-api-memory /tmp

@@ -1,0 +1,659 @@
+{
+  "zabbix_export": {
+    "version": "7.0",
+    "template_groups": [
+      {
+        "uuid": "b8e6ea549d2f4594967543034a9d4b82",
+        "name": "Templates/Applications"
+      }
+    ],
+    "templates": [
+      {
+        "uuid": "c04d5d4a3b874ba9924e30f8234dcf69",
+        "template": "Template Nvoip API JVM Memory",
+        "name": "Template Nvoip API JVM Memory",
+        "description": "NN-6146: monitors memory headroom, swap and the Tomcat 9/10 JVMs on the Nvoip API host without collecting application or customer data.",
+        "groups": [
+          {
+            "name": "Templates/Applications"
+          }
+        ],
+        "items": [
+          {
+            "uuid": "fbc9d41c66f44220a1749e7fd0cd6b17",
+            "name": "API memory collector: sample (JSON)",
+            "type": "ZABBIX_ACTIVE",
+            "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]",
+            "delay": "1m",
+            "history": "1d",
+            "value_type": "TEXT",
+            "trends": "0",
+            "tags": [
+              {
+                "tag": "component",
+                "value": "api-memory"
+              },
+              {
+                "tag": "jira",
+                "value": "NN-6146"
+              }
+            ]
+          },
+          {
+            "uuid": "0bb62f205e1f437c8f30a492cd5398af",
+            "name": "API memory collector: sample timestamp",
+            "type": "DEPENDENT",
+            "key": "nvoip.api.memory.sample.epoch",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "units": "unixtime",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$.collected_at_epoch"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]"
+            },
+            "triggers": [
+              {
+                "uuid": "dd5f0cd5747d4a5f91a064eb2ca32f33",
+                "expression": "fuzzytime(/Template Nvoip API JVM Memory/nvoip.api.memory.sample.epoch,180s)=0",
+                "name": "API memory collector has no fresh sample for 3 minutes",
+                "priority": "HIGH",
+                "description": "The NN-6146 collector stopped producing fresh data. Validate the systemd timer, both Tomcat processes and jstat before treating memory health as known.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-6146"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "uuid": "44c45513fc894f7f8d32037f49fb4fa2",
+            "name": "API host: available memory",
+            "type": "DEPENDENT",
+            "key": "nvoip.api.host.memory.available",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "units": "B",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$.host.memory_available_bytes"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]"
+            },
+            "triggers": [
+              {
+                "uuid": "b491c53af7ea4fc8b0fe12b78cf1251d",
+                "expression": "max(/Template Nvoip API JVM Memory/nvoip.api.host.memory.available,10m)<{$NVOIP.API.MEM.AVAILABLE.WARN} and min(/Template Nvoip API JVM Memory/nvoip.api.host.memory.available,10m)>={$NVOIP.API.MEM.AVAILABLE.HIGH}",
+                "name": "API host has less than {$NVOIP.API.MEM.AVAILABLE.WARN} bytes available for 10 minutes",
+                "priority": "WARNING",
+                "description": "Available memory is below the early-warning threshold. The deploy guard refuses publication at 600 MiB, so investigate JVM growth and concurrent deployments before the host reaches that boundary.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-6146"
+                  }
+                ]
+              },
+              {
+                "uuid": "59ae2d63ce504a1c897ee2acf373393b",
+                "expression": "max(/Template Nvoip API JVM Memory/nvoip.api.host.memory.available,5m)<{$NVOIP.API.MEM.AVAILABLE.HIGH}",
+                "name": "API host is near the 600 MiB deploy guard",
+                "priority": "HIGH",
+                "description": "Available memory remained below the high threshold. Stop new deployments to this host and inspect Tomcat memory before availability is affected; this trigger does not restart a service or force a GC.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-6146"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "uuid": "e06c8cb614ad4ca58529cefaea6438d6",
+            "name": "API host: used swap",
+            "type": "DEPENDENT",
+            "key": "nvoip.api.host.swap.used",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "units": "B",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$.host.swap_used_bytes"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]"
+            },
+            "triggers": [
+              {
+                "uuid": "371082680a7e4cec8321deecbca33124",
+                "expression": "min(/Template Nvoip API JVM Memory/nvoip.api.host.swap.used,15m)>{$NVOIP.API.SWAP.USED.WARN} and max(/Template Nvoip API JVM Memory/nvoip.api.host.swap.used,15m)<={$NVOIP.API.SWAP.USED.HIGH}",
+                "name": "API host is sustaining more than {$NVOIP.API.SWAP.USED.WARN} bytes of swap",
+                "priority": "WARNING",
+                "description": "The host is relying on swap long enough to threaten Full GC latency. Investigate memory headroom; do not clear swap or restart a Tomcat automatically.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-6146"
+                  }
+                ]
+              },
+              {
+                "uuid": "a6ee16f4fdfc4b8a8c49b6cda8f52150",
+                "expression": "min(/Template Nvoip API JVM Memory/nvoip.api.host.swap.used,10m)>{$NVOIP.API.SWAP.USED.HIGH}",
+                "name": "API host is sustaining more than {$NVOIP.API.SWAP.USED.HIGH} bytes of swap",
+                "priority": "HIGH",
+                "description": "Swap use crossed the high threshold observed near long Full GC pauses. Treat this as a capacity incident and inspect both JVMs before changing the runtime.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-6146"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "uuid": "5916f45d15604490a5c206e176775e32",
+            "name": "Tomcat 9: RSS",
+            "type": "DEPENDENT",
+            "key": "nvoip.api.jvm.rss[tomcat9]",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "units": "B",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$.jvms.tomcat9.rss_bytes"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]"
+            }
+          },
+          {
+            "uuid": "193df65c7f2047749ebbf23c3f997fd9",
+            "name": "Tomcat 9: Metaspace used",
+            "type": "DEPENDENT",
+            "key": "nvoip.api.jvm.metaspace.used[tomcat9]",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "units": "B",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$.jvms.tomcat9.metaspace_used_bytes"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]"
+            },
+            "triggers": [
+              {
+                "uuid": "9551890c3795469f9c1b7eff0d7e596d",
+                "expression": "min(/Template Nvoip API JVM Memory/nvoip.api.jvm.metaspace.used[tomcat9],10m)>{$NVOIP.API.TOMCAT9.METASPACE.WARN} and max(/Template Nvoip API JVM Memory/nvoip.api.jvm.metaspace.used[tomcat9],10m)<={$NVOIP.API.TOMCAT9.METASPACE.HIGH}",
+                "name": "Tomcat 9 Metaspace is above the warning threshold",
+                "priority": "WARNING",
+                "description": "Tomcat 9 Metaspace remained above the NN-6146 warning threshold. Correlate with deployments and loaded classes; do not force GC or restart automatically.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-6146"
+                  }
+                ]
+              },
+              {
+                "uuid": "3a247bc3f4384a6088a8c3d45a8824e5",
+                "expression": "min(/Template Nvoip API JVM Memory/nvoip.api.jvm.metaspace.used[tomcat9],5m)>{$NVOIP.API.TOMCAT9.METASPACE.HIGH}",
+                "name": "Tomcat 9 Metaspace is threatening host capacity",
+                "priority": "HIGH",
+                "description": "Tomcat 9 Metaspace crossed the high threshold associated with retained deployments. Stop new deployments and inspect class unloading before planning a controlled restart.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-6146"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "uuid": "bb74a859d24a42bea687b7e22adcd845",
+            "name": "Tomcat 9: old generation used",
+            "type": "DEPENDENT",
+            "key": "nvoip.api.jvm.old_gen.used_percent[tomcat9]",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "value_type": "FLOAT",
+            "units": "%",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$.jvms.tomcat9.old_gen_used_percent"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]"
+            }
+          },
+          {
+            "uuid": "30b495b9766e42608b3597f7d43c740d",
+            "name": "Tomcat 9: Full GC count",
+            "type": "DEPENDENT",
+            "key": "nvoip.api.jvm.full_gc.count[tomcat9]",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$.jvms.tomcat9.full_gc_count"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]"
+            }
+          },
+          {
+            "uuid": "857590c4540240aba7d3cc70cb32f3f7",
+            "name": "Tomcat 9: Full GC time",
+            "type": "DEPENDENT",
+            "key": "nvoip.api.jvm.full_gc.seconds[tomcat9]",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "value_type": "FLOAT",
+            "units": "s",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$.jvms.tomcat9.full_gc_seconds"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]"
+            }
+          },
+          {
+            "uuid": "b39df4ebc7e0416f88b232bb5ac7ba8e",
+            "name": "Tomcat 9: loaded classes",
+            "type": "DEPENDENT",
+            "key": "nvoip.api.jvm.classes.loaded[tomcat9]",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$.jvms.tomcat9.classes_loaded"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]"
+            },
+            "triggers": [
+              {
+                "uuid": "16d775164952450a9d6dff00dc1a144c",
+                "expression": "min(/Template Nvoip API JVM Memory/nvoip.api.jvm.classes.loaded[tomcat9],10m)>{$NVOIP.API.CLASSES.LOADED.WARN} and max(/Template Nvoip API JVM Memory/nvoip.api.jvm.classes.loaded[tomcat9],10m)<={$NVOIP.API.CLASSES.LOADED.HIGH}",
+                "name": "Tomcat 9 has an unusual number of loaded classes",
+                "priority": "WARNING",
+                "description": "Loaded classes remained above the warning threshold. Correlate with the class-unload counter and recent deployments before diagnosing a retained classloader.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-6146"
+                  }
+                ]
+              },
+              {
+                "uuid": "9e8068708c0549c7a2e890b3bccb3b14",
+                "expression": "min(/Template Nvoip API JVM Memory/nvoip.api.jvm.classes.loaded[tomcat9],5m)>{$NVOIP.API.CLASSES.LOADED.HIGH}",
+                "name": "Tomcat 9 loaded classes indicate retained deployments",
+                "priority": "HIGH",
+                "description": "Loaded classes crossed the level observed during the NN-6146 incident. Stop new deployments and inspect class unloading before a controlled restart.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-6146"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "uuid": "65dff2e9caf04acc92aec4d8b02fe06c",
+            "name": "Tomcat 9: unloaded classes",
+            "type": "DEPENDENT",
+            "key": "nvoip.api.jvm.classes.unloaded[tomcat9]",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$.jvms.tomcat9.classes_unloaded"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]"
+            }
+          },
+          {
+            "uuid": "db2620d9de214bfcaf02ef7543f1ad24",
+            "name": "Tomcat 10: RSS",
+            "type": "DEPENDENT",
+            "key": "nvoip.api.jvm.rss[tomcat10]",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "units": "B",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$.jvms.tomcat10.rss_bytes"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]"
+            }
+          },
+          {
+            "uuid": "833638f79acb486791b9b002b756bd23",
+            "name": "Tomcat 10: Metaspace used",
+            "type": "DEPENDENT",
+            "key": "nvoip.api.jvm.metaspace.used[tomcat10]",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "units": "B",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$.jvms.tomcat10.metaspace_used_bytes"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]"
+            },
+            "triggers": [
+              {
+                "uuid": "8194ef6408244a8284ec71be9bdd122f",
+                "expression": "min(/Template Nvoip API JVM Memory/nvoip.api.jvm.metaspace.used[tomcat10],10m)>{$NVOIP.API.TOMCAT10.METASPACE.WARN} and max(/Template Nvoip API JVM Memory/nvoip.api.jvm.metaspace.used[tomcat10],10m)<={$NVOIP.API.TOMCAT10.METASPACE.HIGH}",
+                "name": "Tomcat 10 Metaspace is above the warning threshold",
+                "priority": "WARNING",
+                "description": "Tomcat 10 Metaspace remained above the NN-6146 warning threshold. Correlate with deployments and loaded classes; do not force GC or restart automatically.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-6146"
+                  }
+                ]
+              },
+              {
+                "uuid": "0ad3d7235e2c476d848135b8b59a2fd9",
+                "expression": "min(/Template Nvoip API JVM Memory/nvoip.api.jvm.metaspace.used[tomcat10],5m)>{$NVOIP.API.TOMCAT10.METASPACE.HIGH}",
+                "name": "Tomcat 10 Metaspace is threatening host capacity",
+                "priority": "HIGH",
+                "description": "Tomcat 10 Metaspace crossed the high threshold associated with retained deployments. Stop new deployments and inspect class unloading before planning a controlled restart.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-6146"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "uuid": "e40edce09a19458a9199813275b7cb84",
+            "name": "Tomcat 10: old generation used",
+            "type": "DEPENDENT",
+            "key": "nvoip.api.jvm.old_gen.used_percent[tomcat10]",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "value_type": "FLOAT",
+            "units": "%",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$.jvms.tomcat10.old_gen_used_percent"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]"
+            }
+          },
+          {
+            "uuid": "5ef7e14515384ced96a11df35e1bf30b",
+            "name": "Tomcat 10: Full GC count",
+            "type": "DEPENDENT",
+            "key": "nvoip.api.jvm.full_gc.count[tomcat10]",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$.jvms.tomcat10.full_gc_count"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]"
+            }
+          },
+          {
+            "uuid": "2b50bdac10c948d0b708772e5e8b30c9",
+            "name": "Tomcat 10: Full GC time",
+            "type": "DEPENDENT",
+            "key": "nvoip.api.jvm.full_gc.seconds[tomcat10]",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "value_type": "FLOAT",
+            "units": "s",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$.jvms.tomcat10.full_gc_seconds"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]"
+            }
+          },
+          {
+            "uuid": "634641763e834a0b9547ee92173fccd9",
+            "name": "Tomcat 10: loaded classes",
+            "type": "DEPENDENT",
+            "key": "nvoip.api.jvm.classes.loaded[tomcat10]",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$.jvms.tomcat10.classes_loaded"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]"
+            },
+            "triggers": [
+              {
+                "uuid": "154fab900d8c49ccb153902d04424f59",
+                "expression": "min(/Template Nvoip API JVM Memory/nvoip.api.jvm.classes.loaded[tomcat10],10m)>{$NVOIP.API.CLASSES.LOADED.WARN} and max(/Template Nvoip API JVM Memory/nvoip.api.jvm.classes.loaded[tomcat10],10m)<={$NVOIP.API.CLASSES.LOADED.HIGH}",
+                "name": "Tomcat 10 has an unusual number of loaded classes",
+                "priority": "WARNING",
+                "description": "Loaded classes remained above the warning threshold. Correlate with the class-unload counter and recent deployments before diagnosing a retained classloader.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-6146"
+                  }
+                ]
+              },
+              {
+                "uuid": "f01264a31c0044f8ae1357f0ea562ff8",
+                "expression": "min(/Template Nvoip API JVM Memory/nvoip.api.jvm.classes.loaded[tomcat10],5m)>{$NVOIP.API.CLASSES.LOADED.HIGH}",
+                "name": "Tomcat 10 loaded classes indicate retained deployments",
+                "priority": "HIGH",
+                "description": "Loaded classes crossed the level observed during the NN-6146 incident. Stop new deployments and inspect class unloading before a controlled restart.",
+                "manual_close": "YES",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-6146"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "uuid": "26cf859a6f7a4f0295ba39d4ac2c59cc",
+            "name": "Tomcat 10: unloaded classes",
+            "type": "DEPENDENT",
+            "key": "nvoip.api.jvm.classes.unloaded[tomcat10]",
+            "delay": "0",
+            "history": "30d",
+            "trends": "365d",
+            "preprocessing": [
+              {
+                "type": "JSONPATH",
+                "parameters": [
+                  "$.jvms.tomcat10.classes_unloaded"
+                ]
+              }
+            ],
+            "master_item": {
+              "key": "vfs.file.contents[/run/nvoip-api-memory/metrics.json]"
+            }
+          }
+        ],
+        "macros": [
+          {
+            "macro": "{$NVOIP.API.CLASSES.LOADED.HIGH}",
+            "value": "240000",
+            "description": "High threshold for loaded classes; the NN-6146 incident reached about 270,000."
+          },
+          {
+            "macro": "{$NVOIP.API.CLASSES.LOADED.WARN}",
+            "value": "180000",
+            "description": "Early warning for classloader accumulation."
+          },
+          {
+            "macro": "{$NVOIP.API.MEM.AVAILABLE.HIGH}",
+            "value": "681574400",
+            "description": "650 MiB, just above the 600 MiB deployment guard."
+          },
+          {
+            "macro": "{$NVOIP.API.MEM.AVAILABLE.WARN}",
+            "value": "943718400",
+            "description": "900 MiB available-memory early warning."
+          },
+          {
+            "macro": "{$NVOIP.API.SWAP.USED.HIGH}",
+            "value": "1073741824",
+            "description": "1 GiB sustained swap use."
+          },
+          {
+            "macro": "{$NVOIP.API.SWAP.USED.WARN}",
+            "value": "536870912",
+            "description": "512 MiB sustained swap use."
+          },
+          {
+            "macro": "{$NVOIP.API.TOMCAT10.METASPACE.HIGH}",
+            "value": "805306368",
+            "description": "768 MiB of Tomcat 10 Metaspace."
+          },
+          {
+            "macro": "{$NVOIP.API.TOMCAT10.METASPACE.WARN}",
+            "value": "524288000",
+            "description": "500 MiB of Tomcat 10 Metaspace."
+          },
+          {
+            "macro": "{$NVOIP.API.TOMCAT9.METASPACE.HIGH}",
+            "value": "1073741824",
+            "description": "1 GiB of Tomcat 9 Metaspace."
+          },
+          {
+            "macro": "{$NVOIP.API.TOMCAT9.METASPACE.WARN}",
+            "value": "734003200",
+            "description": "700 MiB of Tomcat 9 Metaspace."
+          }
+        ],
+        "tags": [
+          {
+            "tag": "component",
+            "value": "api-memory"
+          },
+          {
+            "tag": "jira",
+            "value": "NN-6146"
+          }
+        ]
+      }
+    ]
+  }
+}
