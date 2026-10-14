@@ -20,7 +20,7 @@ Na publicação autorizada, crie **novos** diretório e arquivo com acesso restr
 ao agente Zabbix. Não altere permissões dos logs ou arquivos preexistentes:
 
 ```sh
-sudo install -d -o root -g zabbix -m 0750 /var/log/nvoip-softphone-push
+sudo install -d -o root -g zabbix -m 0751 /var/log/nvoip-softphone-push
 sudo install -o www-data -g zabbix -m 0640 /dev/null /var/log/nvoip-softphone-push/access.log
 sudo install -o root -g root -m 0644 deploy/logrotate-softphone-push-monitor.conf /etc/logrotate.d/nvoip-softphone-push-monitor
 sudo nginx -t
@@ -30,8 +30,10 @@ Esses comandos são roteiro de publicação, não parte dos testes em bancada.
 Compare a configuração ativa antes de substituir o arquivo Nginx e valide o
 rollback. Confirme que `sudo -u zabbix test -r` consegue ler o **novo** log,
 inclusive depois da primeira rotação; o logrotate dedicado usa
-`www-data:zabbix 0640`. Uma falha de leitura deve aparecer como item não
-suportado, nunca como série silenciosamente saudável.
+`www-data:zabbix 0640`. O modo `0751` permite ao worker do Nginx atravessar o
+diretório e reabrir o arquivo após a rotação, enquanto o grupo `zabbix` pode
+listar os arquivos rotacionados. Uma falha de leitura deve aparecer como item
+não suportado, nunca como série silenciosamente saudável.
 
 ## Servidor Zabbix
 
