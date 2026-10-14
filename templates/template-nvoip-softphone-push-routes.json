@@ -1,0 +1,157 @@
+{
+  "zabbix_export": {
+    "version": "7.0",
+    "template_groups": [
+      {
+        "uuid": "e478a4cc79494d4586b67e41a3664b7c",
+        "name": "Templates/Applications"
+      }
+    ],
+    "templates": [
+      {
+        "uuid": "5a5f7e4a093c4abeb6481b7bec064010",
+        "template": "Template Nvoip Softphone Push Route Guard",
+        "name": "Template Nvoip Softphone Push Route Guard",
+        "description": "NN-6117: route-specific 4xx, 5xx and 499 alerts for the softphone push gateway, using a status-only Nginx log.",
+        "groups": [
+          {
+            "name": "Templates/Applications"
+          }
+        ],
+        "items": [
+          {
+            "uuid": "5ef86b1e53e243b5a0e0c20e8ee23c41",
+            "name": "Softphone push chat-message HTTP status",
+            "type": "ZABBIX_ACTIVE",
+            "key": "logrt[{$NVOIP.PUSH.LOG_PATH},\"^[0-9]+\\.[0-9]+ /nvoip-softphone/push/chat-message [0-9]{3} [01]$\",,,skip]",
+            "delay": "10s",
+            "history": "7d",
+            "value_type": "LOG",
+            "trends": "0",
+            "description": "Reads the dedicated status-only Nginx log. No IP, query string, token or payload is collected.",
+            "tags": [
+              {
+                "tag": "jira",
+                "value": "NN-6117"
+              },
+              {
+                "tag": "route",
+                "value": "chat-message"
+              }
+            ],
+            "triggers": [
+              {
+                "uuid": "b24927361a6d49a5b4f9f448680594e3",
+                "expression": "count(/Template Nvoip Softphone Push Route Guard/logrt[{$NVOIP.PUSH.LOG_PATH},\"^[0-9]+\\.[0-9]+ /nvoip-softphone/push/chat-message [0-9]{3} [01]$\",,,skip],5m,\"regexp\",\" 5[0-9][0-9] [01]$\")>0 or count(/Template Nvoip Softphone Push Route Guard/logrt[{$NVOIP.PUSH.LOG_PATH},\"^[0-9]+\\.[0-9]+ /nvoip-softphone/push/chat-message [0-9]{3} [01]$\",,,skip],5m,\"regexp\",\" 499 1$\")>0",
+                "name": "Softphone push chat-message: HTTP 5xx or internal 499",
+                "priority": "HIGH",
+                "description": "Investigate Nginx and gateway logs for the affected route; correlate sent/failed before claiming delivery.",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-6117"
+                  },
+                  {
+                    "tag": "route",
+                    "value": "chat-message"
+                  }
+                ]
+              },
+              {
+                "uuid": "99a490253f7940e88be501b91d413d70",
+                "expression": "count(/Template Nvoip Softphone Push Route Guard/logrt[{$NVOIP.PUSH.LOG_PATH},\"^[0-9]+\\.[0-9]+ /nvoip-softphone/push/chat-message [0-9]{3} [01]$\",,,skip],15m,\"regexp\",\" 4[0-9][0-9] 1$\")>0 and count(/Template Nvoip Softphone Push Route Guard/logrt[{$NVOIP.PUSH.LOG_PATH},\"^[0-9]+\\.[0-9]+ /nvoip-softphone/push/chat-message [0-9]{3} [01]$\",,,skip],15m,\"regexp\",\" 1$\")>0 and 2*count(/Template Nvoip Softphone Push Route Guard/logrt[{$NVOIP.PUSH.LOG_PATH},\"^[0-9]+\\.[0-9]+ /nvoip-softphone/push/chat-message [0-9]{3} [01]$\",,,skip],15m,\"regexp\",\" 4[0-9][0-9] 1$\")>=count(/Template Nvoip Softphone Push Route Guard/logrt[{$NVOIP.PUSH.LOG_PATH},\"^[0-9]+\\.[0-9]+ /nvoip-softphone/push/chat-message [0-9]{3} [01]$\",,,skip],15m,\"regexp\",\" 1$\")",
+                "name": "Softphone push chat-message: at least 50% internal HTTP 4xx in 15m",
+                "priority": "HIGH",
+                "description": "Catches authorization or routing regressions even at low traffic; only known internal producers enter the ratio.",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-6117"
+                  },
+                  {
+                    "tag": "route",
+                    "value": "chat-message"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "uuid": "4c4f971563b1460a928f27d05f48eab5",
+            "name": "Softphone push incoming-call HTTP status",
+            "type": "ZABBIX_ACTIVE",
+            "key": "logrt[{$NVOIP.PUSH.LOG_PATH},\"^[0-9]+\\.[0-9]+ /nvoip-softphone/push/incoming-call [0-9]{3} [01]$\",,,skip]",
+            "delay": "10s",
+            "history": "7d",
+            "value_type": "LOG",
+            "trends": "0",
+            "description": "Reads the dedicated status-only Nginx log. No IP, query string, token or payload is collected.",
+            "tags": [
+              {
+                "tag": "jira",
+                "value": "NN-6117"
+              },
+              {
+                "tag": "route",
+                "value": "incoming-call"
+              }
+            ],
+            "triggers": [
+              {
+                "uuid": "b2796b74b455466b83f4d1d9058d89f1",
+                "expression": "count(/Template Nvoip Softphone Push Route Guard/logrt[{$NVOIP.PUSH.LOG_PATH},\"^[0-9]+\\.[0-9]+ /nvoip-softphone/push/incoming-call [0-9]{3} [01]$\",,,skip],5m,\"regexp\",\" 5[0-9][0-9] [01]$\")>0 or count(/Template Nvoip Softphone Push Route Guard/logrt[{$NVOIP.PUSH.LOG_PATH},\"^[0-9]+\\.[0-9]+ /nvoip-softphone/push/incoming-call [0-9]{3} [01]$\",,,skip],5m,\"regexp\",\" 499 1$\")>0",
+                "name": "Softphone push incoming-call: HTTP 5xx or internal 499",
+                "priority": "HIGH",
+                "description": "Investigate Nginx and gateway logs for the affected route; correlate sent/failed before claiming delivery.",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-6117"
+                  },
+                  {
+                    "tag": "route",
+                    "value": "incoming-call"
+                  }
+                ]
+              },
+              {
+                "uuid": "cbfb686930354d3f84a3b80add2a61a4",
+                "expression": "count(/Template Nvoip Softphone Push Route Guard/logrt[{$NVOIP.PUSH.LOG_PATH},\"^[0-9]+\\.[0-9]+ /nvoip-softphone/push/incoming-call [0-9]{3} [01]$\",,,skip],15m,\"regexp\",\" 4[0-9][0-9] 1$\")>0 and count(/Template Nvoip Softphone Push Route Guard/logrt[{$NVOIP.PUSH.LOG_PATH},\"^[0-9]+\\.[0-9]+ /nvoip-softphone/push/incoming-call [0-9]{3} [01]$\",,,skip],15m,\"regexp\",\" 1$\")>0 and 2*count(/Template Nvoip Softphone Push Route Guard/logrt[{$NVOIP.PUSH.LOG_PATH},\"^[0-9]+\\.[0-9]+ /nvoip-softphone/push/incoming-call [0-9]{3} [01]$\",,,skip],15m,\"regexp\",\" 4[0-9][0-9] 1$\")>=count(/Template Nvoip Softphone Push Route Guard/logrt[{$NVOIP.PUSH.LOG_PATH},\"^[0-9]+\\.[0-9]+ /nvoip-softphone/push/incoming-call [0-9]{3} [01]$\",,,skip],15m,\"regexp\",\" 1$\")",
+                "name": "Softphone push incoming-call: at least 50% internal HTTP 4xx in 15m",
+                "priority": "HIGH",
+                "description": "Catches authorization or routing regressions even at low traffic; only known internal producers enter the ratio.",
+                "tags": [
+                  {
+                    "tag": "jira",
+                    "value": "NN-6117"
+                  },
+                  {
+                    "tag": "route",
+                    "value": "incoming-call"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "macros": [
+          {
+            "macro": "{$NVOIP.PUSH.LOG_PATH}",
+            "value": "/var/log/nvoip-softphone-push/access\\.log(\\.[0-9]+)?$",
+            "description": "Dedicated status-only log. The Zabbix agent must already have access without changing permissions of existing files."
+          }
+        ],
+        "tags": [
+          {
+            "tag": "jira",
+            "value": "NN-6117"
+          },
+          {
+            "tag": "service",
+            "value": "softphone-push"
+          }
+        ]
+      }
+    ]
+  }
+}
