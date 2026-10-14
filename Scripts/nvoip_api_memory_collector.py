@@ -9,11 +9,9 @@ arguments, environment variables, request data or customer data are emitted.
 
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import pathlib
-import shutil
 import subprocess
 import tempfile
 import time
@@ -24,6 +22,9 @@ JVM_BASES = {
     "tomcat9": "/opt/tomcat9",
     "tomcat10": "/opt/tomcat10",
 }
+JSTAT_PATH = "/usr/bin/jstat"
+OUTPUT_PATH = pathlib.Path("/run/nvoip-api-memory/metrics.json")
+PROC_ROOT = pathlib.Path("/proc")
 
 
 class CollectionError(RuntimeError):
@@ -97,9 +98,13 @@ def parse_jstat_table(output: str) -> Dict[str, float]:
         raise CollectionError("jstat returned a non-numeric value") from exc
 
 
-def run_jstat(jstat: str, mode: str, pid: int) -> Dict[str, float]:
-    completed = subprocess.run(
-        [jstat, mode, str(pid)],
+def run_jstat(mode: str, pid: int) -> Dict[str, float]:
+    if mode not in {"-gc", "-class"} or not isinstance(pid, int) or pid <= 0:
+        raise CollectionError("invalid jstat request")
+    # The executable is fixed, the mode is allow-listed and the PID is a positive int
+    # discovered under /proc; shell expansion is never used.
+    completed = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit.dangerous-subprocess-use-audit
+        [JSTAT_PATH, mode, str(pid)],
         check=False,
         capture_output=True,
         text=True,
@@ -121,9 +126,9 @@ def require_fields(values: Mapping[str, float], names: Iterable[str], mode: str)
         raise CollectionError(f"jstat {mode} missing fields: {', '.join(missing)}")
 
 
-def collect_jvm(proc_root: pathlib.Path, jstat: str, pid: int) -> Dict[str, object]:
-    gc = run_jstat(jstat, "-gc", pid)
-    classes = run_jstat(jstat, "-class", pid)
+def collect_jvm(proc_root: pathlib.Path, pid: int) -> Dict[str, object]:
+    gc = run_jstat("-gc", pid)
+    classes = run_jstat("-class", pid)
     require_fields(gc, ("OC", "OU", "MC", "MU", "FGC", "FGCT"), "-gc")
     require_fields(classes, ("Loaded", "Unloaded"), "-class")
 
@@ -146,7 +151,7 @@ def collect_jvm(proc_root: pathlib.Path, jstat: str, pid: int) -> Dict[str, obje
     }
 
 
-def collect(proc_root: pathlib.Path, jstat: str, now_epoch: int) -> Dict[str, object]:
+def collect(proc_root: pathlib.Path, now_epoch: int) -> Dict[str, object]:
     meminfo = parse_meminfo(read_text(proc_root / "meminfo"))
     pids = discover_jvm_pids(proc_root)
     return {
@@ -157,7 +162,7 @@ def collect(proc_root: pathlib.Path, jstat: str, now_epoch: int) -> Dict[str, ob
             "swap_used_bytes": meminfo["SwapTotal"] - meminfo["SwapFree"],
         },
         "jvms": {
-            name: collect_jvm(proc_root, jstat, pid) for name, pid in pids.items()
+            name: collect_jvm(proc_root, pid) for name, pid in pids.items()
         },
     }
 
@@ -184,22 +189,9 @@ def atomic_write_json(output: pathlib.Path, payload: Mapping[str, object]) -> No
         temporary.unlink(missing_ok=True)
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--output",
-        type=pathlib.Path,
-        default=pathlib.Path("/run/nvoip-api-memory/metrics.json"),
-    )
-    parser.add_argument("--proc-root", type=pathlib.Path, default=pathlib.Path("/proc"))
-    parser.add_argument("--jstat", default=shutil.which("jstat") or "jstat")
-    return parser.parse_args()
-
-
 def main() -> int:
-    args = parse_args()
-    payload = collect(args.proc_root, args.jstat, int(time.time()))
-    atomic_write_json(args.output, payload)
+    payload = collect(PROC_ROOT, int(time.time()))
+    atomic_write_json(OUTPUT_PATH, payload)
     return 0
 
 

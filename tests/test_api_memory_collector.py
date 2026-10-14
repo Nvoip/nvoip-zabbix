@@ -4,6 +4,7 @@ import pathlib
 import stat
 import tempfile
 import unittest
+from unittest import mock
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -43,29 +44,18 @@ class ApiMemoryCollectorTest(unittest.TestCase):
                 f"Name:\tjava\nVmRSS:\t{rss} kB\n", encoding="utf-8"
             )
 
-    def make_jstat(self, root: pathlib.Path) -> pathlib.Path:
-        executable = root / "jstat"
-        executable.write_text(
-            "#!/bin/sh\n"
-            "case \"$1\" in\n"
-            f"  -gc) cat <<'EOF'\n{GC_OUTPUT}EOF\n"
-            "  ;;\n"
-            f"  -class) cat <<'EOF'\n{CLASS_OUTPUT}EOF\n"
-            "  ;;\n"
-            "  *) exit 2;;\n"
-            "esac\n",
-            encoding="utf-8",
-        )
-        executable.chmod(0o755)
-        return executable
-
     def test_collects_only_aggregate_host_and_jvm_metrics(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             proc_root = root / "proc"
             proc_root.mkdir()
             self.make_proc(proc_root)
-            payload = collector.collect(proc_root, str(self.make_jstat(root)), 1234)
+            def fake_jstat(mode, _pid):
+                output = GC_OUTPUT if mode == "-gc" else CLASS_OUTPUT
+                return collector.parse_jstat_table(output)
+
+            with mock.patch.object(collector, "run_jstat", side_effect=fake_jstat):
+                payload = collector.collect(proc_root, 1234)
 
         self.assertEqual(1, payload["schema_version"])
         self.assertEqual(1234, payload["collected_at_epoch"])
