@@ -1,0 +1,12 @@
+[Unit]
+Description=Collect Nvoip API host and Tomcat memory metrics every minute
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=60s
+AccuracySec=5s
+Persistent=true
+Unit=nvoip-api-memory-collector.service
+
+[Install]
+WantedBy=timers.target

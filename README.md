@@ -97,6 +97,7 @@ This repository also contains Nvoip-specific operational monitoring templates,
 including:
 
 - [Aurora lock guard](docs/database-lock-monitoring.md);
+- [API host and Tomcat JVM memory monitor](docs/api-jvm-memory-monitoring.md);
 - [API key lazy-creation monitor](docs/grafana/api-key-lazy-creation-monitor.md).
 
 These operational templates are independent from the public Nvoip notification
