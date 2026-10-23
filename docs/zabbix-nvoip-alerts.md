@@ -8,7 +8,7 @@ Zabbix 7.0 ou superior. Ele usa os endpoints atuais da API v3 da Nvoip:
 - `POST /v3/torpedo/voice`.
 
 As requisições OAuth e de notificação se identificam com o cabeçalho
-`User-Agent: Nvoip-Zabbix/1.0 (+https://github.com/Nvoip/nvoip-zabbix)`.
+`User-Agent: Nvoip-Zabbix/1.1.0 (+https://github.com/Nvoip/nvoip-zabbix)`.
 Isso evita a rejeição Cloudflare 1010 observada em requisições sem identificação
 adequada, preservando as regras de segurança da API.
 
@@ -38,7 +38,9 @@ os placeholders diretamente no YAML e não grave valores reais no Git:
 O modo padrão `nvoip_auth_mode=client_credentials` troca essas credenciais por
 um bearer de curta duração em cada execução. Esse é o grant indicado pela API
 v3 para integrações servidor a servidor. O parâmetro `nvoip_oauth_scopes` sai
-com `sms:send call:make` e deve ser limitado aos grants do cliente cadastrado.
+com `sms:send whatsapp:send call:make` e deve ser limitado aos grants do cliente
+cadastrado. Se a conta usar apenas parte dos canais, remova somente os escopos
+que não serão utilizados.
 Como alternativa operacional, o modo
 `bearer` usa `{$NVOIP_ACCESS_TOKEN}`; ele só é indicado quando a renovação do
 token já é controlada externamente.
@@ -155,8 +157,10 @@ e autorização operacional explícita. Esta entrega não executa esse disparo.
 1. Confirme que os testes em dry-run passaram e que nenhuma macro ficou com o
    placeholder literal `{$NVOIP...}`.
 2. Ajuste `nvoip_dry_run=0`.
-3. Mantenha `attempts=3` e `attempt_interval=10s`, ou adeque-os à política do
-   ambiente.
+3. Mantenha `attempts=1`. SMS, WhatsApp e chamada podem gerar cobrança, e uma
+   nova tentativa automática após resposta incerta pode repetir a comunicação.
+   Aumente esse valor somente quando o seu fluxo tiver reconciliação e
+   idempotência adequadas.
 4. Habilite o media type e associe-o apenas às actions desejadas.
 
 Respostas `408`, `425`, `429` e `5xx` são classificadas como

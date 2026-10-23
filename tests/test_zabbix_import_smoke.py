@@ -81,7 +81,7 @@ class ZabbixImportSmokeTest(unittest.TestCase):
             media_type = media_types[0]
             self.assertEqual(media_type["type"], "4")
             self.assertEqual(media_type["status"], "1")
-            self.assertEqual(media_type["maxattempts"], "3")
+            self.assertEqual(media_type["maxattempts"], "1")
             self.assertIn("dry-run=1", media_type["description"])
             print(
                 "ZABBIX_IMPORT_SMOKE",

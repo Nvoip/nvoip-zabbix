@@ -53,7 +53,7 @@ zabbix_export:
         - name: nvoip_oauth_client_credential
           value: '{$NVOIP.OAUTH.CLIENT_CREDENTIAL}'
         - name: nvoip_oauth_scopes
-          value: 'sms:send call:make'
+          value: 'sms:send whatsapp:send call:make'
         - name: nvoip_retryable_http_codes
           value: '408,425,429,500,502,503,504'
         - name: nvoip_sms_problem_template_id
@@ -92,13 +92,13 @@ zabbix_export:
           value: '{TRIGGER.URL}'
       status: DISABLED
       max_sessions: '1'
-      attempts: '3'
+      attempts: '1'
       attempt_interval: 10s
       timeout: 30s
       script: |
         var Nvoip = {
             logPrefix: '[ Nvoip Webhook ] ',
-            userAgent: 'Nvoip-Zabbix/1.0 (+https://github.com/Nvoip/nvoip-zabbix)',
+            userAgent: 'Nvoip-Zabbix/1.1.0 (+https://github.com/Nvoip/nvoip-zabbix)',
 
             log: function (level, message) {
                 Zabbix.log(level, this.logPrefix + message);

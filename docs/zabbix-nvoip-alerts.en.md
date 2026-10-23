@@ -8,7 +8,7 @@ The `templates/media_nvoip.yaml` file contains a webhook media type for Zabbix
 - `POST /v3/torpedo/voice`.
 
 OAuth and notification requests identify the integration with
-`User-Agent: Nvoip-Zabbix/1.0 (+https://github.com/Nvoip/nvoip-zabbix)`.
+`User-Agent: Nvoip-Zabbix/1.1.0 (+https://github.com/Nvoip/nvoip-zabbix)`.
 This addresses the Cloudflare 1010 rejection observed on requests without
 appropriate identification while preserving the API security rules.
 
@@ -37,7 +37,9 @@ replace their placeholders in the YAML file or commit actual values:
 
 The default `nvoip_auth_mode=client_credentials` exchanges the credentials for
 a short-lived bearer token on each execution. The default scopes are
-`sms:send call:make` and must be limited to the grants assigned to the client.
+`sms:send whatsapp:send call:make` and must be limited to the grants assigned
+to the client. If the account uses only some channels, remove only the scopes
+that will not be used.
 
 As an operational alternative, `nvoip_auth_mode=bearer` reads an externally
 managed token from `{$NVOIP_ACCESS_TOKEN}`.
@@ -154,8 +156,10 @@ account, and authorized test recipients.
 1. Confirm that all dry-run tests passed.
 2. Confirm no parameter still contains an unresolved `{$NVOIP...}` macro.
 3. Set `nvoip_dry_run=0`.
-4. Keep `attempts=3` and `attempt_interval=10s`, or adjust them to the
-   environment's retry policy.
+4. Keep `attempts=1`. SMS, WhatsApp, and voice calls may be billable, and an
+   automatic retry after an uncertain response may repeat the communication.
+   Increase this value only when your flow provides suitable reconciliation
+   and idempotency.
 5. Enable the media type and associate it only with the intended actions.
 
 HTTP `408`, `425`, `429`, and `5xx` responses are classified as

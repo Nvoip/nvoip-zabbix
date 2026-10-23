@@ -7,11 +7,12 @@ external publication step.
 | Field | Proposed value |
 | --- | --- |
 | Integration title | Nvoip notifications for Zabbix |
+| Integration version | 1.1.0 |
 | Company name | Nvoip |
 | Company description | Nvoip provides cloud communication APIs for voice, SMS, and WhatsApp. |
 | Source | https://github.com/Nvoip/nvoip-zabbix |
 | Created | 2026-08-28 |
-| Updated | 2026-08-28 |
+| Updated | 2026-10-23 |
 | Author | Nvoip |
 | Logo | `assets/nvoip-logo.svg` |
 | Compatibility | Nvoip API v3 accounts with SMS, voice, and/or approved WhatsApp template capabilities |
@@ -25,10 +26,12 @@ SMS, an approved WhatsApp template message, or a dynamic voice message by
 selecting the channel in the media destination. Default messages include the
 problem, host, severity, tags, event ID, date/time, and event URL.
 
-The media type supports OAuth client credentials, provider-side eligibility
-and rate-limit enforcement, safe error classification, and Zabbix-controlled
-retries. It is distributed disabled and in dry-run mode, and voice recovery
-notifications are disabled by default.
+The media type supports OAuth client credentials with explicit SMS, WhatsApp,
+and voice scopes, provider-side eligibility and rate-limit enforcement, and
+safe error classification. It is distributed disabled, in dry-run mode, and
+with one delivery attempt by default to avoid repeating billable communications
+after an uncertain response. Voice recovery notifications are disabled by
+default.
 
 ## Submission prerequisites not stored here
 
