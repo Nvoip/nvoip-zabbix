@@ -51,7 +51,7 @@ def default_params(**overrides):
         "nvoip_dry_run": "0",
         "nvoip_oauth_client_id": "dummy",
         "nvoip_oauth_client_credential": "dummy",
-        "nvoip_oauth_scopes": "sms:send call:make",
+        "nvoip_oauth_scopes": "sms:send whatsapp:send call:make",
         "nvoip_retryable_http_codes": "408,425,429,500,502,503,504",
         "nvoip_sms_problem_template_id": "1001",
         "nvoip_sms_recovery_template_id": "1002",
@@ -134,7 +134,7 @@ def oauth_response():
 
 class NvoipMediaTypeTest(unittest.TestCase):
     def test_all_channels_identify_oauth_and_notification_requests(self):
-        user_agent = "User-Agent: Nvoip-Zabbix/1.0 (+https://github.com/Nvoip/nvoip-zabbix)"
+        user_agent = "User-Agent: Nvoip-Zabbix/1.1.0 (+https://github.com/Nvoip/nvoip-zabbix)"
         for channel in ("sms", "whatsapp", "voice"):
             with self.subTest(channel=channel):
                 result = run_webhook(
@@ -151,7 +151,7 @@ class NvoipMediaTypeTest(unittest.TestCase):
         self.assertIn("version: '7.0'", content)
         self.assertIn("type: WEBHOOK", content)
         self.assertIn("status: DISABLED", content)
-        self.assertIn("attempts: '3'", content)
+        self.assertIn("attempts: '1'", content)
         self.assertIn("attempt_interval: 10s", content)
         self.assertRegex(content, r"name: nvoip_dry_run\n\s+value: '1'")
         for macro in (
@@ -199,7 +199,10 @@ class NvoipMediaTypeTest(unittest.TestCase):
         oauth_call = result["calls"][0]
         self.assertEqual(oauth_call["url"], "https://api.nvoip.test/auth/oauth2/token")
         self.assertIn("grant_type=client_credentials", oauth_call["body"])
-        self.assertIn("scope=sms%3Asend%20call%3Amake", oauth_call["body"])
+        self.assertIn(
+            "scope=sms%3Asend%20whatsapp%3Asend%20call%3Amake",
+            oauth_call["body"],
+        )
 
         for secret in ("dummy", "client-secret-value"):
             self.assertNotIn(secret, visible)

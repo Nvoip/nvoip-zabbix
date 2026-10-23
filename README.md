@@ -24,6 +24,7 @@ GitHub is only needed to obtain updates, not to send alerts.
 - problem, recovery, and update message templates;
 - host, problem, severity, tags, event ID, date/time, and event URL context;
 - OAuth `client_credentials` or an externally managed bearer token;
+- least-privilege OAuth scopes for SMS, WhatsApp, and voice;
 - retryable and permanent error classification without logging credentials or
   provider response bodies;
 - voice recovery notifications disabled by default.
@@ -54,6 +55,10 @@ GitHub is only needed to obtain updates, not to send alerts.
    ```
 
 6. Test all three routes in dry-run before enabling the integration.
+
+The package uses one Zabbix delivery attempt by default because SMS, WhatsApp,
+and voice calls may be billable. Increase retries only when the surrounding
+flow provides suitable reconciliation and idempotency.
 
 Full instructions:
 
