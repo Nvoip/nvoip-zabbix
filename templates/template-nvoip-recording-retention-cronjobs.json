@@ -12,7 +12,7 @@
         "uuid": "644b4a41550d4fc08d57b3623fbe188d",
         "template": "Template Nvoip Recording Retention CronJobs",
         "name": "Template Nvoip Recording Retention CronJobs",
-        "description": "NN-2350/NN-4830: watches the retention-only daily cycle, runtime checksum, duplicate/stuck execution and fail-closed legacy flag. Only aggregate log lines are collected.",
+        "description": "NN-2350/NN-4830/NN-6673: watches the retention-only daily cycle, the real deleted-account cleanup cycle, runtime checksum, duplicate/stuck execution and fail-closed legacy flag. Only aggregate log lines are collected.",
         "groups": [
           {
             "name": "Templates/Applications"
@@ -81,6 +81,40 @@
                 "description": "The daily run did not emit the retention_only marker. Validate the root cron command before another execution; do not assume deleted-account cleanup stayed isolated.",
                 "manual_close": "YES",
                 "tags": [{ "tag": "jira", "value": "NN-2350" }]
+              }
+            ]
+          },
+          {
+            "uuid": "adcd3f516f114ae4b4597041a73b9425",
+            "name": "Recording retention CronJobs: LGPD cleanup cycle summary",
+            "type": "ZABBIX_ACTIVE",
+            "key": "log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} s3_lgpd selected=[0-9]+ held=[0-9]+ completed=[0-9]+ failed=[0-9]+ prefix_pages=[0-9]+ prefix_objects=[0-9]+ legacy_objects=[0-9]+ ura_objects=[0-9]+ dry_run=false pending_ambiguous=[0-9]+ deferred=[0-9]+ attempted=[0-9]+ elapsed_s=[0-9]+ budget_s=[0-9]+ max_accounts=[0-9]+ stop=[a-z_]+ rechecked=[0-9]+ recheck_deferred=[0-9]+ shared_checked=[0-9]+ shared_released=[0-9]+ shared_objects=[0-9]+ recheck_days=[0-9]+$\",,,skip]",
+            "delay": "10s",
+            "history": "90d",
+            "value_type": "LOG",
+            "trends": "0",
+            "description": "Collects only the aggregate summary of a real deleted-account cleanup (--lgpd-only). A simulated run (dry_run=true), account lines and object keys do not match this item.",
+            "tags": [
+              { "tag": "jira", "value": "NN-6673" },
+              { "tag": "service", "value": "recording-retention" }
+            ],
+            "triggers": [
+              {
+                "uuid": "6474d39d09b34cb4ac96cf8882ffb306",
+                "expression": "nodata(/Template Nvoip Recording Retention CronJobs/log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} s3_lgpd selected=[0-9]+ held=[0-9]+ completed=[0-9]+ failed=[0-9]+ prefix_pages=[0-9]+ prefix_objects=[0-9]+ legacy_objects=[0-9]+ ura_objects=[0-9]+ dry_run=false pending_ambiguous=[0-9]+ deferred=[0-9]+ attempted=[0-9]+ elapsed_s=[0-9]+ budget_s=[0-9]+ max_accounts=[0-9]+ stop=[a-z_]+ rechecked=[0-9]+ recheck_deferred=[0-9]+ shared_checked=[0-9]+ shared_released=[0-9]+ shared_objects=[0-9]+ recheck_days=[0-9]+$\",,,skip],26h)=1",
+                "name": "LGPD recording cleanup has no real cycle summary",
+                "priority": "HIGH",
+                "description": "No real s3_lgpd summary for 26 hours. flock -n skips the 22:30 run without logging while a previous --lgpd-only run still holds its own lock (s3_delete_recordings-v3-lgpd.lock), and a cron line with --dry-run stops producing this line too. Check the lock, the process and the root cron line; do not start a second cycle.",
+                "tags": [{ "tag": "jira", "value": "NN-6673" }]
+              },
+              {
+                "uuid": "c692476b21814bb5afe78703a366e86e",
+                "expression": "find(/Template Nvoip Recording Retention CronJobs/log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} s3_lgpd selected=[0-9]+ held=[0-9]+ completed=[0-9]+ failed=[0-9]+ prefix_pages=[0-9]+ prefix_objects=[0-9]+ legacy_objects=[0-9]+ ura_objects=[0-9]+ dry_run=false pending_ambiguous=[0-9]+ deferred=[0-9]+ attempted=[0-9]+ elapsed_s=[0-9]+ budget_s=[0-9]+ max_accounts=[0-9]+ stop=[a-z_]+ rechecked=[0-9]+ recheck_deferred=[0-9]+ shared_checked=[0-9]+ shared_released=[0-9]+ shared_objects=[0-9]+ recheck_days=[0-9]+$\",,,skip],,\"regexp\",\" failed=[1-9][0-9]* \")=1",
+                "name": "LGPD recording cleanup cycle reported failures",
+                "priority": "HIGH",
+                "description": "The aggregate s3_lgpd summary reported failed>0. Investigate without exporting account identifiers and do not force retries while the outcome is uncertain.",
+                "manual_close": "YES",
+                "tags": [{ "tag": "jira", "value": "NN-6673" }]
               }
             ]
           },
@@ -157,11 +191,12 @@
         "macros": [
           { "macro": "{$NVOIP.RETENTION.LOG}", "value": "/etc/nvoip/logs/s3_delete_recordings-v3.log", "description": "World-readable aggregate/runtime log already used by the 04:00 root cron." },
           { "macro": "{$NVOIP.RETENTION.SCRIPT}", "value": "/etc/nvoip/maintenance/s3_delete_recordings-v3.lua", "description": "Published NN-2350/NN-4830 Lua runtime." },
-          { "macro": "{$NVOIP.RETENTION.SCRIPT.CRC32}", "value": "2220100890", "description": "CRC32 reported by the legacy Zabbix agent for SHA-256 3e1ea3f447b8f8f71a2c56cea9c5bfdf8ded636eeeba9c14927433908c02a578." }
+          { "macro": "{$NVOIP.RETENTION.SCRIPT.CRC32}", "value": "3046723097", "description": "CRC32 reported by the legacy Zabbix agent for SHA-256 fd3cfa60c4d60c60bee11eb33754d717e5791f6ff3451b6c816b20e6a68c10cb." }
         ],
         "tags": [
           { "tag": "jira", "value": "NN-2350" },
           { "tag": "jira", "value": "NN-4830" },
+          { "tag": "jira", "value": "NN-6673" },
           { "tag": "scope", "value": "cronjobs" }
         ]
       }
