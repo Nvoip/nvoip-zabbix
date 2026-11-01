@@ -1,4 +1,4 @@
-# Monitoramento de retenção de gravações (NN-2350 / NN-4830)
+# Monitoramento de retenção de gravações (NN-2350 / NN-4830 / NN-6673)
 
 Este monitor substitui o acompanhamento operacional recorrente no chat. O
 Zabbix alerta falhas e decisões necessárias; métricas de produto como abertura,
@@ -12,6 +12,8 @@ No host `Servidor Cronjobs`, o template
 
 - o resumo agregado diário de `account_recording_retention`;
 - o marcador `s3_lgpd skipped reason=retention_only`;
+- o resumo agregado de uma limpeza real de contas encerradas (`s3_lgpd selected=`
+  com `dry_run=false`), produzido pelo modo `--lgpd-only` (NN-6673);
 - atualização do log, CRC32 do Lua ativo e quantidade de processos do worker;
 - `failed>0`, execução duplicada ou fora da janela normal e o alerta crítico
   `deletion_enabled=true` da flag legada.
@@ -21,6 +23,11 @@ Os itens usam o modo `skip`: a publicação começa no fim do arquivo e não
 reprocessa o histórico como se fossem eventos atuais.
 O CRC32 existe porque o agente legado não suporta `vfs.file.cksum[...,sha256]`;
 o SHA-256 do recibo de deploy continua sendo a fonte de verdade.
+
+O modo `--lgpd-only` imprime `account_recording_retention skipped reason=lgpd_only`.
+Essa linha não casa com o resumo da retenção nem com o marcador, e o processo
+`--lgpd-only` não entra em `proc.num[...--retention-only]`: os gatilhos desses três
+itens continuam medindo só a linha das 04:00.
 
 No host lógico `AuroraDB`, o template
 `Template Nvoip Recording Retention Database` executa a cada dois minutos uma
@@ -48,6 +55,9 @@ A consulta não retorna `id_astpp`, Numbersip, usuário, e-mail, chave S3,
 - worker CronJobs: alto quando ainda roda depois das 07:00 ou antes das 03:59,
   desastre se houver mais de um processo;
 - resumo/marcador diário: alerta após 26 horas sem nova amostra;
+- limpeza LGPD: alto após 26 horas sem resumo real e com `failed>0`. A simulação
+  (`dry_run=true`) não conta como execução: um `--dry-run` deixado no cron também
+  dispara o alerta;
 - aviso 266: alto quando pendente por mais de 30 minutos; warning para
   falha/bounce real na última hora.
 
@@ -77,6 +87,26 @@ A consulta exata fica em
 por `PREPARE` e execute uma única vez em sessão read-only com teto de três
 segundos no schema `desenvolvimento`.
 
+### Atualizar o CRC32 depois de publicar o Lua
+
+O valor aprovado é a macro `{$NVOIP.RETENTION.SCRIPT.CRC32}`, versionada no template
+do CronJobs. Ela muda a cada publicação de `s3_delete_recordings-v3.lua`:
+
+1. Publique o Lua pela esteira do `api-cronjobs` e confira no CronJobs, só leitura:
+   `sha256sum` e `cksum` de `/etc/nvoip/maintenance/s3_delete_recordings-v3.lua`. O
+   primeiro campo do `cksum` é o valor que o agente reporta; os dois devem bater com
+   o template deste repositório.
+2. Mescle o PR do template e importe
+   `templates/template-nvoip-recording-retention-cronjobs.json` em
+   *Coleta de dados > Modelos > Importar*, criando e atualizando objetos e sem a opção
+   de exclusão. Faça isso logo depois do passo 1.
+3. O item de CRC32 coleta a cada 15 minutos. Se a coleta cair entre os dois passos, o
+   alerta alto de artefato divergente abre; depois da importação ele se resolve na
+   coleta seguinte, ou feche manualmente com o recibo do deploy.
+
+Publicar o Lua sem importar o template mantém esse alerta aberto; importar antes de
+publicar também o abre. O valor do template só vale para o SHA-256 da sua descrição.
+
 ## Resposta aos alertas
 
 - **flag legada habilitada:** tratar como crítico. Confirmar ambiente e comando
@@ -91,6 +121,13 @@ segundos no schema `desenvolvimento`.
 - **worker longo/duplicado:** identificar o dono do `flock`, processo filho e
   última linha agregada. Não iniciar segundo ciclo e não matar processo sem
   entender se existe efeito externo incerto.
+- **limpeza LGPD sem resumo:** ver se a retenção das 04:00 ainda segura o lock
+  compartilhado (`flock -n` pula a linha das 22:30 sem registrar nada) e conferir no
+  crontab root se a linha `--lgpd-only` existe e está sem `--dry-run`. A fila espera a
+  execução seguinte; não iniciar segundo ciclo.
+- **limpeza LGPD com falha:** ler as linhas `s3_cleanup=failed` no log, sem exportar
+  conta. O estado local e os lotes já concluídos são preservados; a próxima execução
+  retoma sozinha.
 - **fila/falha 266:** inspecionar o worker de e-mail e eventos do provedor.
   Aceite do provedor (`sent=2`) não prova entrega.
 
