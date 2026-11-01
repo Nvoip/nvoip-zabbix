@@ -25,13 +25,23 @@ em sessão read-only e com `max_execution_time=3000`; usa o índice
 retornou total 5, idade máxima 59.265 s, zero acima de 24 h e 3 criadas
 nos últimos 5 min. O custo deve ser revisto se o buffer crescer.
 
-Instalar o script em `/etc/nvoip/monitoring/cdrs_flow_metrics.lua` e criar
-somente o diretório de saída `/var/lib/nvoip-zabbix`. O arquivo novo
-`/etc/cron.d/nn6660-cdrs-flow-metrics` deve executar a cada 5 min e publicar
+O script foi instalado em `/etc/nvoip/monitoring/cdrs_flow_metrics.lua` e o
+novo diretório de saída é `/var/lib/nvoip-zabbix`. O arquivo novo
+`/etc/cron.d/nn6660-cdrs-flow-metrics` executa a cada 5 min e publica
 atomicamente em `/var/lib/nvoip-zabbix/cdrs_flow.metrics`, com um temporário
 seguido de `mv` somente após exit 0. Na falha, o arquivo anterior fica intacto
 e `updated_epoch` envelhece. O agente lê o arquivo com `vfs.file.regexp[]`;
 nenhuma credencial é dada ao usuário `zabbix`.
+
+Na URA, [`../Scripts/ura_voicebot_metrics.py`](../Scripts/ura_voicebot_metrics.py)
+foi instalado em `/etc/nvoip/monitoring/ura_voicebot_metrics.py` com o novo
+`/etc/cron.d/nn6660-ura-voicebot-metrics`. Publica somente contagens de
+`FLOW_QUEUE_FAILURE_FALLBACK_FAILED`, `TRIGGER_NOT_FOUND`,
+`ASSET_SOURCE_UNAVAILABLE` e `snapshot_missing` em janela de 10 min, além dos
+contadores `evicted_keys`, `rejected_connections`, `redis_ping` e
+`updated_epoch` em `/var/lib/nvoip-zabbix/ura_voicebot.metrics`. O cron root
+lê o journal sem mudar as permissões dos logs; o agente lê apenas números.
+Uma janela de 10 min com coleta a cada 5 min evita perder eventos entre ciclos.
 
 ## Gatilhos e triagem
 
@@ -41,7 +51,10 @@ nenhuma credencial é dada ao usuário `zabbix`.
   `oldest_age_seconds` e `overdue_24h` juntos antes de atuar.
 - Flow/Voicebot: projetor ou publicador abaixo da contagem esperada; linhas
   ativas stale/expiradas por 5 min; FreeSWITCH, gateways e timers inativos.
-  O status do coletor e os gatilhos CCV2 anteriores continuam valendo.
+  O status do coletor e os gatilhos CCV2 anteriores continuam valendo. O
+  `FALLBACK_FAILED` gera alerta; Redis sem PONG, evictions ou conexões rejeitadas
+  também. Os demais contadores de log são contexto, exceto
+  `TRIGGER_NOT_FOUND` sustentado acima de 10 em 10 min.
 - Softphone-push: `healthz` HTTPS público exige HTTP 200, cadeia e hostname TLS
   válidos; certificado alerta com 21 dias de antecedência e leitura ausente
   por 3 h. O `certbot.timer` continua responsável pela renovação.
