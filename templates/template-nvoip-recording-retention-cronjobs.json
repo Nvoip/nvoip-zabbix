@@ -22,7 +22,7 @@
           {
             "uuid": "3734d0b00ac4492f9c6f164c1804433d",
             "name": "Recording retention CronJobs: aggregate cycle summary",
-            "type": "ZABBIX_PASSIVE",
+            "type": "ZABBIX_ACTIVE",
             "key": "log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} account_recording_retention selected=[0-9]+ held=[0-9]+ warned=[0-9]+ completed=[0-9]+ empty=[0-9]+ deferred=[0-9]+ deletion_blocked=[0-9]+ delivery_blocked=[0-9]+ failed=[0-9]+ deletion_enabled=(true|false) dry_run=(true|false)$\",,,all]",
             "delay": "10s",
             "history": "90d",
@@ -65,7 +65,7 @@
           {
             "uuid": "f9172bf77b304612b338ca9705c7d9c5",
             "name": "Recording retention CronJobs: retention-only marker",
-            "type": "ZABBIX_PASSIVE",
+            "type": "ZABBIX_ACTIVE",
             "key": "log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} s3_lgpd skipped reason=retention_only$\",,,all]",
             "delay": "10s",
             "history": "30d",
