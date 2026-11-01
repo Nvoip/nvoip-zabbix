@@ -22,7 +22,7 @@
           {
             "uuid": "3734d0b00ac4492f9c6f164c1804433d",
             "name": "Recording retention CronJobs: aggregate cycle summary",
-            "type": "ZABBIX_ACTIVE",
+            "type": "ZABBIX",
             "key": "log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} account_recording_retention selected=[0-9]+ held=[0-9]+ warned=[0-9]+ completed=[0-9]+ empty=[0-9]+ deferred=[0-9]+ deletion_blocked=[0-9]+ delivery_blocked=[0-9]+ failed=[0-9]+ deletion_enabled=(true|false) dry_run=(true|false)$\",,,all]",
             "delay": "10s",
             "history": "90d",
@@ -65,7 +65,7 @@
           {
             "uuid": "f9172bf77b304612b338ca9705c7d9c5",
             "name": "Recording retention CronJobs: retention-only marker",
-            "type": "ZABBIX_ACTIVE",
+            "type": "ZABBIX",
             "key": "log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} s3_lgpd skipped reason=retention_only$\",,,all]",
             "delay": "10s",
             "history": "30d",
@@ -87,7 +87,7 @@
           {
             "uuid": "c2a1d7f7174148bcb504bf80250dfaa7",
             "name": "Recording retention CronJobs: log modification time",
-            "type": "ZABBIX_ACTIVE",
+            "type": "ZABBIX",
             "key": "vfs.file.time[{$NVOIP.RETENTION.LOG},modify]",
             "delay": "5m",
             "history": "30d",
@@ -107,7 +107,7 @@
           {
             "uuid": "b70f1643795f459aa4467fffba767049",
             "name": "Recording retention CronJobs: runtime CRC32",
-            "type": "ZABBIX_ACTIVE",
+            "type": "ZABBIX",
             "key": "vfs.file.cksum[{$NVOIP.RETENTION.SCRIPT}]",
             "delay": "15m",
             "history": "30d",
@@ -128,7 +128,7 @@
           {
             "uuid": "a452f6d2ff7d4c7bb155c90343bcad07",
             "name": "Recording retention CronJobs: running Lua processes",
-            "type": "ZABBIX_ACTIVE",
+            "type": "ZABBIX",
             "key": "proc.num[lua,root,,s3_delete_recordings-v3.lua --retention-only]",
             "delay": "1m",
             "history": "30d",
