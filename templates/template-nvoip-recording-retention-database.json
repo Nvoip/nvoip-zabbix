@@ -1,0 +1,291 @@
+{
+  "zabbix_export": {
+    "version": "7.0",
+    "template_groups": [
+      {
+        "uuid": "7005ce3778b443e3a304a17ae049b3c6",
+        "name": "Templates/Databases"
+      }
+    ],
+    "templates": [
+      {
+        "uuid": "6004cbe3cb424c2e8dff5fba198f1ae2",
+        "template": "Template Nvoip Recording Retention Database",
+        "name": "Template Nvoip Recording Retention Database",
+        "description": "NN-2350/NN-4830: aggregate, read-only health checks for exact-version deletion and warning delivery. No customer identifier, address, message body, object key or version is collected.",
+        "groups": [
+          {
+            "name": "Templates/Databases"
+          }
+        ],
+        "items": [
+          {
+            "uuid": "2e12b3c5ab6044eb805b5f5fa00e904e",
+            "name": "Recording retention: health counters (JSON)",
+            "type": "ODBC",
+            "key": "db.odbc.get[nvoip.recording.retention.health,{$NVOIP.RETENTION.DB.DSN}]",
+            "delay": "2m",
+            "history": "1d",
+            "value_type": "TEXT",
+            "trends": "0",
+            "params": "SELECT approval_active,approval_seconds_left,pending_intent_count,oldest_pending_seconds,deleted_5m,audited_deleted_5m,due_candidate_count,active_legal_hold_count,deleted_without_gone_count,gone_without_deleted_count,warning_pending_over_30m,warning_failed_1h FROM nn2350_monitor_recording_retention_health",
+            "tags": [
+              { "tag": "jira", "value": "NN-2350" },
+              { "tag": "jira", "value": "NN-4830" },
+              { "tag": "service", "value": "recording-retention" }
+            ],
+            "triggers": [
+              {
+                "uuid": "519af0fa94044c6ca1968d16e7480e66",
+                "expression": "nodata(/Template Nvoip Recording Retention Database/db.odbc.get[nvoip.recording.retention.health,{$NVOIP.RETENTION.DB.DSN}],5m)=1",
+                "name": "Recording retention database monitor has no fresh sample",
+                "priority": "HIGH",
+                "description": "The aggregate read-only collector stopped. Validate the ODBC poller and database connectivity before treating deletion or warning health as known.",
+                "tags": [{ "tag": "jira", "value": "NN-4830" }]
+              }
+            ]
+          },
+          {
+            "uuid": "ee6830a363014951a8ab8376fa2f68df",
+            "name": "Recording retention: operational approval active",
+            "type": "DEPENDENT",
+            "key": "nvoip.recording.retention.approval.active",
+            "delay": "0",
+            "history": "90d",
+            "trends": "365d",
+            "preprocessing": [{ "type": "JSONPATH", "parameters": ["$[0].approval_active"] }],
+            "master_item": { "key": "db.odbc.get[nvoip.recording.retention.health,{$NVOIP.RETENTION.DB.DSN}]" },
+            "triggers": [
+              {
+                "uuid": "57bb95ab31c24071837c9e4fcfa446cf",
+                "expression": "max(/Template Nvoip Recording Retention Database/nvoip.recording.retention.approval.active,5m)=0",
+                "name": "Recording retention operational approval is absent or expired",
+                "priority": "HIGH",
+                "description": "Exact-version deletion is expected to fail closed. Review the approval window; do not create or extend an approval automatically.",
+                "tags": [{ "tag": "jira", "value": "NN-4830" }]
+              }
+            ]
+          },
+          {
+            "uuid": "70b40dbae8bd41ad8aa761a6d94f61e7",
+            "name": "Recording retention: approval seconds left",
+            "type": "DEPENDENT",
+            "key": "nvoip.recording.retention.approval.seconds_left",
+            "delay": "0",
+            "history": "90d",
+            "trends": "365d",
+            "units": "s",
+            "preprocessing": [{ "type": "JSONPATH", "parameters": ["$[0].approval_seconds_left"] }],
+            "master_item": { "key": "db.odbc.get[nvoip.recording.retention.health,{$NVOIP.RETENTION.DB.DSN}]" },
+            "triggers": [
+              {
+                "uuid": "fc771abf0a6341e6887bfe6a244458e4",
+                "expression": "max(/Template Nvoip Recording Retention Database/nvoip.recording.retention.approval.seconds_left,5m)>=0 and max(/Template Nvoip Recording Retention Database/nvoip.recording.retention.approval.seconds_left,5m)<{$NVOIP.RETENTION.APPROVAL.WARN}",
+                "name": "Recording retention approval expires in less than {$NVOIP.RETENTION.APPROVAL.WARN} seconds",
+                "priority": "WARNING",
+                "description": "A human decision will be required before the approval expires. This trigger never renews approval.",
+                "tags": [{ "tag": "jira", "value": "NN-4830" }]
+              }
+            ]
+          },
+          {
+            "uuid": "55fc094d6da945c0937771514d933d1c",
+            "name": "Recording retention: pending delete intents",
+            "type": "DEPENDENT",
+            "key": "nvoip.recording.retention.intent.pending",
+            "delay": "0",
+            "history": "90d",
+            "trends": "365d",
+            "preprocessing": [{ "type": "JSONPATH", "parameters": ["$[0].pending_intent_count"] }],
+            "master_item": { "key": "db.odbc.get[nvoip.recording.retention.health,{$NVOIP.RETENTION.DB.DSN}]" }
+          },
+          {
+            "uuid": "6c47f677b16f498aac803d60e43389ce",
+            "name": "Recording retention: oldest pending intent",
+            "type": "DEPENDENT",
+            "key": "nvoip.recording.retention.intent.oldest_seconds",
+            "delay": "0",
+            "history": "90d",
+            "trends": "365d",
+            "units": "s",
+            "preprocessing": [{ "type": "JSONPATH", "parameters": ["$[0].oldest_pending_seconds"] }],
+            "master_item": { "key": "db.odbc.get[nvoip.recording.retention.health,{$NVOIP.RETENTION.DB.DSN}]" },
+            "triggers": [
+              {
+                "uuid": "a6b61b50f5ba41119a73dcec59c5e869",
+                "expression": "min(/Template Nvoip Recording Retention Database/nvoip.recording.retention.intent.pending,5m)>0 and min(/Template Nvoip Recording Retention Database/nvoip.recording.retention.intent.oldest_seconds,5m)>{$NVOIP.RETENTION.INTENT.MAX_AGE}",
+                "name": "Recording retention has a stuck or uncertain delete intent",
+                "priority": "DISASTER",
+                "description": "Stop and reconcile the durable intent, database ledger and exact S3 version. Never retry by deleting a key without its recorded version ID.",
+                "manual_close": "YES",
+                "tags": [{ "tag": "jira", "value": "NN-4830" }]
+              }
+            ]
+          },
+          {
+            "uuid": "aabe190594bc420daf8d85235d148412",
+            "name": "Recording retention: exact versions deleted in 5 minutes",
+            "type": "DEPENDENT",
+            "key": "nvoip.recording.retention.deleted.5m",
+            "delay": "0",
+            "history": "90d",
+            "trends": "365d",
+            "preprocessing": [{ "type": "JSONPATH", "parameters": ["$[0].deleted_5m"] }],
+            "master_item": { "key": "db.odbc.get[nvoip.recording.retention.health,{$NVOIP.RETENTION.DB.DSN}]" },
+            "triggers": [
+              {
+                "uuid": "6bfd7a0aff7a44f09567243908379088",
+                "expression": "max(/Template Nvoip Recording Retention Database/nvoip.recording.retention.deleted.5m,5m)>{$NVOIP.RETENTION.DELETE.MAX_5M}",
+                "name": "Recording retention deletion rate exceeded the batch-1 envelope",
+                "priority": "DISASTER",
+                "description": "The approved runtime is batch 1 per scheduler cycle. Inactivate approval and reconcile before any further deletion; this trigger performs no automatic rollback.",
+                "manual_close": "YES",
+                "tags": [{ "tag": "jira", "value": "NN-4830" }]
+              }
+            ]
+          },
+          {
+            "uuid": "62ef6e35dd154109969aa82f0ad02101",
+            "name": "Recording retention: audited VERSION_DELETED events in 5 minutes",
+            "type": "DEPENDENT",
+            "key": "nvoip.recording.retention.audit.deleted.5m",
+            "delay": "0",
+            "history": "90d",
+            "trends": "365d",
+            "preprocessing": [{ "type": "JSONPATH", "parameters": ["$[0].audited_deleted_5m"] }],
+            "master_item": { "key": "db.odbc.get[nvoip.recording.retention.health,{$NVOIP.RETENTION.DB.DSN}]" }
+          },
+          {
+            "uuid": "1b93600f964e45af9358d4f01af0ae77",
+            "name": "Recording retention: due candidates not yet claimed",
+            "type": "DEPENDENT",
+            "key": "nvoip.recording.retention.candidate.due",
+            "delay": "0",
+            "history": "90d",
+            "trends": "365d",
+            "preprocessing": [{ "type": "JSONPATH", "parameters": ["$[0].due_candidate_count"] }],
+            "master_item": { "key": "db.odbc.get[nvoip.recording.retention.health,{$NVOIP.RETENTION.DB.DSN}]" },
+            "triggers": [
+              {
+                "uuid": "0c2b238a1d5f45a1934bac66f8f489c0",
+                "expression": "min(/Template Nvoip Recording Retention Database/nvoip.recording.retention.candidate.due,10m)>0",
+                "name": "Recording retention candidates are not being drained",
+                "priority": "HIGH",
+                "description": "Eligible candidates remained unclaimed for at least 10 minutes. Inspect the scheduler logs, runtime flags and approval; do not alter dates or force a deletion for testing.",
+                "tags": [{ "tag": "jira", "value": "NN-4830" }]
+              }
+            ]
+          },
+          {
+            "uuid": "edacaa5aadfb430197dccb0e495fbb71",
+            "name": "Recording retention: active legal holds",
+            "type": "DEPENDENT",
+            "key": "nvoip.recording.retention.legal_hold.active",
+            "delay": "0",
+            "history": "90d",
+            "trends": "365d",
+            "preprocessing": [{ "type": "JSONPATH", "parameters": ["$[0].active_legal_hold_count"] }],
+            "master_item": { "key": "db.odbc.get[nvoip.recording.retention.health,{$NVOIP.RETENTION.DB.DSN}]" }
+          },
+          {
+            "uuid": "df6810ba5ebe43ee95ff5fdacf8828f3",
+            "name": "Recording retention: DELETED intents without gone_at",
+            "type": "DEPENDENT",
+            "key": "nvoip.recording.retention.integrity.deleted_without_gone",
+            "delay": "0",
+            "history": "90d",
+            "trends": "365d",
+            "preprocessing": [{ "type": "JSONPATH", "parameters": ["$[0].deleted_without_gone_count"] }],
+            "master_item": { "key": "db.odbc.get[nvoip.recording.retention.health,{$NVOIP.RETENTION.DB.DSN}]" },
+            "triggers": [
+              {
+                "uuid": "2de8cfaa69c6430d923466a709ec8537",
+                "expression": "min(/Template Nvoip Recording Retention Database/nvoip.recording.retention.integrity.deleted_without_gone,4m)>0",
+                "name": "Recording retention ledger disagrees with object gone_at",
+                "priority": "DISASTER",
+                "description": "At least one intent says DELETED while the object ledger is not marked gone. Inactivate approval and reconcile the immutable version before proceeding.",
+                "manual_close": "YES",
+                "tags": [{ "tag": "jira", "value": "NN-4830" }]
+              }
+            ]
+          },
+          {
+            "uuid": "6eb948f0203f4afab2712642459cd22d",
+            "name": "Recording retention: gone_at without DELETED intent",
+            "type": "DEPENDENT",
+            "key": "nvoip.recording.retention.integrity.gone_without_deleted",
+            "delay": "0",
+            "history": "90d",
+            "trends": "365d",
+            "preprocessing": [{ "type": "JSONPATH", "parameters": ["$[0].gone_without_deleted_count"] }],
+            "master_item": { "key": "db.odbc.get[nvoip.recording.retention.health,{$NVOIP.RETENTION.DB.DSN}]" },
+            "triggers": [
+              {
+                "uuid": "a95d61d08dd746a29f065ad86ac08492",
+                "expression": "min(/Template Nvoip Recording Retention Database/nvoip.recording.retention.integrity.gone_without_deleted,4m)>0",
+                "name": "Recording retention object is gone without a DELETED intent",
+                "priority": "DISASTER",
+                "description": "The physical-state ledger is inconsistent. Inactivate approval and reconcile before any new deletion.",
+                "manual_close": "YES",
+                "tags": [{ "tag": "jira", "value": "NN-4830" }]
+              }
+            ]
+          },
+          {
+            "uuid": "1a63ee18b6ed4477a99052e5bff33ded",
+            "name": "Recording retention warnings: pending over 30 minutes",
+            "type": "DEPENDENT",
+            "key": "nvoip.recording.retention.warning.pending_over_30m",
+            "delay": "0",
+            "history": "90d",
+            "trends": "365d",
+            "preprocessing": [{ "type": "JSONPATH", "parameters": ["$[0].warning_pending_over_30m"] }],
+            "master_item": { "key": "db.odbc.get[nvoip.recording.retention.health,{$NVOIP.RETENTION.DB.DSN}]" },
+            "triggers": [
+              {
+                "uuid": "afdfa2a5cf9c4d47b001e0c4b0a8fbb6",
+                "expression": "min(/Template Nvoip Recording Retention Database/nvoip.recording.retention.warning.pending_over_30m,6m)>0",
+                "name": "Recording retention warning is pending for more than 30 minutes",
+                "priority": "HIGH",
+                "description": "Template 266 has an old pending queue row. Check mail_sender processing; sent=2 is provider acceptance and must not be reported as delivery.",
+                "tags": [{ "tag": "jira", "value": "NN-2350" }]
+              }
+            ]
+          },
+          {
+            "uuid": "907a88bd2b5f4b3495d2685c726819a4",
+            "name": "Recording retention warnings: failed in 1 hour",
+            "type": "DEPENDENT",
+            "key": "nvoip.recording.retention.warning.failed_1h",
+            "delay": "0",
+            "history": "90d",
+            "trends": "365d",
+            "preprocessing": [{ "type": "JSONPATH", "parameters": ["$[0].warning_failed_1h"] }],
+            "master_item": { "key": "db.odbc.get[nvoip.recording.retention.health,{$NVOIP.RETENTION.DB.DSN}]" },
+            "triggers": [
+              {
+                "uuid": "14a3ce67ff5d4f12bf3ff204546c158f",
+                "expression": "min(/Template Nvoip Recording Retention Database/nvoip.recording.retention.warning.failed_1h,6m)>0",
+                "name": "Recording retention warning delivery has a recent failure or bounce",
+                "priority": "WARNING",
+                "description": "At least one non-test template 266 row entered a real failure/bounce state in the last hour. Investigate aggregate delivery health without exposing recipient identity.",
+                "tags": [{ "tag": "jira", "value": "NN-2350" }]
+              }
+            ]
+          }
+        ],
+        "macros": [
+          { "macro": "{$NVOIP.RETENTION.DB.DSN}", "value": "nvoip", "description": "Existing read-only Aurora ODBC DSN." },
+          { "macro": "{$NVOIP.RETENTION.APPROVAL.WARN}", "value": "604800", "description": "Warn seven days before the human approval expires." },
+          { "macro": "{$NVOIP.RETENTION.INTENT.MAX_AGE}", "value": "300", "description": "Maximum pending/started intent age before reconciliation is required." },
+          { "macro": "{$NVOIP.RETENTION.DELETE.MAX_5M}", "value": "6", "description": "Safety ceiling above the batch-1, one-minute scheduler envelope." }
+        ],
+        "tags": [
+          { "tag": "jira", "value": "NN-2350" },
+          { "tag": "jira", "value": "NN-4830" },
+          { "tag": "scope", "value": "aurora" }
+        ]
+      }
+    ]
+  }
+}

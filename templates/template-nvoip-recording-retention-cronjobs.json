@@ -1,0 +1,170 @@
+{
+  "zabbix_export": {
+    "version": "7.0",
+    "template_groups": [
+      {
+        "uuid": "fbd4de3e4a8d47ad94a70f00017b182c",
+        "name": "Templates/Applications"
+      }
+    ],
+    "templates": [
+      {
+        "uuid": "644b4a41550d4fc08d57b3623fbe188d",
+        "template": "Template Nvoip Recording Retention CronJobs",
+        "name": "Template Nvoip Recording Retention CronJobs",
+        "description": "NN-2350/NN-4830: watches the retention-only daily cycle, runtime checksum, duplicate/stuck execution and fail-closed legacy flag. Only aggregate log lines are collected.",
+        "groups": [
+          {
+            "name": "Templates/Applications"
+          }
+        ],
+        "items": [
+          {
+            "uuid": "3734d0b00ac4492f9c6f164c1804433d",
+            "name": "Recording retention CronJobs: aggregate cycle summary",
+            "type": "ZABBIX_ACTIVE",
+            "key": "log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} account_recording_retention selected=[0-9]+ held=[0-9]+ warned=[0-9]+ completed=[0-9]+ empty=[0-9]+ deferred=[0-9]+ deletion_blocked=[0-9]+ delivery_blocked=[0-9]+ failed=[0-9]+ deletion_enabled=(true|false) dry_run=(true|false)$\",,,all]",
+            "delay": "10s",
+            "history": "90d",
+            "value_type": "LOG",
+            "trends": "0",
+            "description": "Collects only the aggregate summary. Account lines, object keys, addresses and recipients do not match this item.",
+            "tags": [
+              { "tag": "jira", "value": "NN-2350" },
+              { "tag": "service", "value": "recording-retention" }
+            ],
+            "triggers": [
+              {
+                "uuid": "3bfeffec79f04090bd50e0a30b486cd6",
+                "expression": "nodata(/Template Nvoip Recording Retention CronJobs/log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} account_recording_retention selected=[0-9]+ held=[0-9]+ warned=[0-9]+ completed=[0-9]+ empty=[0-9]+ deferred=[0-9]+ deletion_blocked=[0-9]+ delivery_blocked=[0-9]+ failed=[0-9]+ deletion_enabled=(true|false) dry_run=(true|false)$\",,,all],26h)=1",
+                "name": "Recording retention daily cycle has no completed summary",
+                "priority": "HIGH",
+                "description": "No aggregate completion was observed for 26 hours. Check the lock, process and helper; do not start a second cycle while the first is uncertain.",
+                "tags": [{ "tag": "jira", "value": "NN-2350" }]
+              },
+              {
+                "uuid": "acd1495d80624b6ea903dafbe2694f0b",
+                "expression": "find(/Template Nvoip Recording Retention CronJobs/log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} account_recording_retention selected=[0-9]+ held=[0-9]+ warned=[0-9]+ completed=[0-9]+ empty=[0-9]+ deferred=[0-9]+ deletion_blocked=[0-9]+ delivery_blocked=[0-9]+ failed=[0-9]+ deletion_enabled=(true|false) dry_run=(true|false)$\",,,all],,\"regexp\",\" failed=[1-9][0-9]* \")=1",
+                "name": "Recording retention daily cycle reported failures",
+                "priority": "HIGH",
+                "description": "The aggregate cycle reported failed>0. Investigate without exporting account identifiers and do not force retries while outcome is uncertain.",
+                "manual_close": "YES",
+                "tags": [{ "tag": "jira", "value": "NN-2350" }]
+              },
+              {
+                "uuid": "64cc3ae6d3694908b3442d55f249c594",
+                "expression": "find(/Template Nvoip Recording Retention CronJobs/log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} account_recording_retention selected=[0-9]+ held=[0-9]+ warned=[0-9]+ completed=[0-9]+ empty=[0-9]+ deferred=[0-9]+ deletion_blocked=[0-9]+ delivery_blocked=[0-9]+ failed=[0-9]+ deletion_enabled=(true|false) dry_run=(true|false)$\",,,all],,\"like\",\"deletion_enabled=true\")=1",
+                "name": "CRITICAL: legacy cancelled-recording deletion flag is enabled",
+                "priority": "DISASTER",
+                "description": "NVOIP_CANCELLED_RECORDING_DELETE_ENABLED must remain absent/false. This is distinct from the Backend exact-version flow. Contain and reconcile before any further CronJobs run.",
+                "manual_close": "YES",
+                "tags": [{ "tag": "jira", "value": "NN-4830" }]
+              }
+            ]
+          },
+          {
+            "uuid": "f9172bf77b304612b338ca9705c7d9c5",
+            "name": "Recording retention CronJobs: retention-only marker",
+            "type": "ZABBIX_ACTIVE",
+            "key": "log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} s3_lgpd skipped reason=retention_only$\",,,all]",
+            "delay": "10s",
+            "history": "30d",
+            "value_type": "LOG",
+            "trends": "0",
+            "description": "Proves that the scheduled warning cycle did not enter deleted-account LGPD processing.",
+            "triggers": [
+              {
+                "uuid": "1b750079ff054a95b5264b4e1504e927",
+                "expression": "nodata(/Template Nvoip Recording Retention CronJobs/log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} s3_lgpd skipped reason=retention_only$\",,,all],26h)=1",
+                "name": "Recording retention cycle did not prove retention-only isolation",
+                "priority": "DISASTER",
+                "description": "The daily run did not emit the retention_only marker. Validate the root cron command before another execution; do not assume deleted-account cleanup stayed isolated.",
+                "manual_close": "YES",
+                "tags": [{ "tag": "jira", "value": "NN-2350" }]
+              }
+            ]
+          },
+          {
+            "uuid": "c2a1d7f7174148bcb504bf80250dfaa7",
+            "name": "Recording retention CronJobs: log modification time",
+            "type": "ZABBIX_ACTIVE",
+            "key": "vfs.file.time[{$NVOIP.RETENTION.LOG},modify]",
+            "delay": "5m",
+            "history": "30d",
+            "trends": "365d",
+            "units": "unixtime",
+            "triggers": [
+              {
+                "uuid": "5ef09cc03a064594ac8e28a23e6127cd",
+                "expression": "now()-last(/Template Nvoip Recording Retention CronJobs/vfs.file.time[{$NVOIP.RETENTION.LOG},modify])>97200",
+                "name": "Recording retention log is stale for more than 27 hours",
+                "priority": "HIGH",
+                "description": "Neither progress nor completion has updated the log. Check cron scheduling, agent access and the retention lock.",
+                "tags": [{ "tag": "jira", "value": "NN-2350" }]
+              }
+            ]
+          },
+          {
+            "uuid": "b70f1643795f459aa4467fffba767049",
+            "name": "Recording retention CronJobs: runtime CRC32",
+            "type": "ZABBIX_ACTIVE",
+            "key": "vfs.file.cksum[{$NVOIP.RETENTION.SCRIPT}]",
+            "delay": "15m",
+            "history": "30d",
+            "trends": "365d",
+            "description": "The legacy agent supports CRC32 only. The corresponding SHA-256 remains the deployment source of truth in the runbook.",
+            "triggers": [
+              {
+                "uuid": "a647dd0c0640492687c2b5c92cbaf012",
+                "expression": "last(/Template Nvoip Recording Retention CronJobs/vfs.file.cksum[{$NVOIP.RETENTION.SCRIPT}])<>{$NVOIP.RETENTION.SCRIPT.CRC32}",
+                "name": "Recording retention runtime differs from the approved artifact",
+                "priority": "HIGH",
+                "description": "The active Lua file changed. Reconcile its SHA-256, publication receipt and cron mode before declaring the runtime healthy.",
+                "manual_close": "YES",
+                "tags": [{ "tag": "jira", "value": "NN-2350" }]
+              }
+            ]
+          },
+          {
+            "uuid": "a452f6d2ff7d4c7bb155c90343bcad07",
+            "name": "Recording retention CronJobs: running Lua processes",
+            "type": "ZABBIX_ACTIVE",
+            "key": "proc.num[lua,root,,s3_delete_recordings-v3.lua --retention-only]",
+            "delay": "1m",
+            "history": "30d",
+            "trends": "365d",
+            "triggers": [
+              {
+                "uuid": "eaaac6d218044db4b25744ac0395e886",
+                "expression": "last(/Template Nvoip Recording Retention CronJobs/proc.num[lua,root,,s3_delete_recordings-v3.lua --retention-only])>1",
+                "name": "Recording retention has duplicate worker processes",
+                "priority": "DISASTER",
+                "description": "More than one retention-only Lua process is active. Do not terminate or restart blindly; reconcile the flock owner and outcomes first.",
+                "manual_close": "YES",
+                "tags": [{ "tag": "jira", "value": "NN-2350" }]
+              },
+              {
+                "uuid": "54c1def08241434b8c2d9f35ccb23600",
+                "expression": "last(/Template Nvoip Recording Retention CronJobs/proc.num[lua,root,,s3_delete_recordings-v3.lua --retention-only])>0 and (time()>070000 or time()<035900)",
+                "name": "Recording retention worker is running outside the expected 04:00-07:00 window",
+                "priority": "HIGH",
+                "description": "The daily cycle is still active outside its normal window. Inspect the current helper and lock; never start a second cycle to test recovery.",
+                "tags": [{ "tag": "jira", "value": "NN-2350" }]
+              }
+            ]
+          }
+        ],
+        "macros": [
+          { "macro": "{$NVOIP.RETENTION.LOG}", "value": "/etc/nvoip/logs/s3_delete_recordings-v3.log", "description": "World-readable aggregate/runtime log already used by the 04:00 root cron." },
+          { "macro": "{$NVOIP.RETENTION.SCRIPT}", "value": "/etc/nvoip/maintenance/s3_delete_recordings-v3.lua", "description": "Published NN-2350/NN-4830 Lua runtime." },
+          { "macro": "{$NVOIP.RETENTION.SCRIPT.CRC32}", "value": "2220100890", "description": "CRC32 reported by the legacy Zabbix agent for SHA-256 3e1ea3f447b8f8f71a2c56cea9c5bfdf8ded636eeeba9c14927433908c02a578." }
+        ],
+        "tags": [
+          { "tag": "jira", "value": "NN-2350" },
+          { "tag": "jira", "value": "NN-4830" },
+          { "tag": "scope", "value": "cronjobs" }
+        ]
+      }
+    ]
+  }
+}
