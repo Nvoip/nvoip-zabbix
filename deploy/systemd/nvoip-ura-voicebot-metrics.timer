@@ -1,0 +1,11 @@
+[Unit]
+Description=NN-6660 collect aggregate Voicebot Flow and Redis metrics every five minutes
+
+[Timer]
+OnCalendar=*:0/5
+AccuracySec=30s
+Persistent=true
+Unit=nvoip-ura-voicebot-metrics.service
+
+[Install]
+WantedBy=timers.target

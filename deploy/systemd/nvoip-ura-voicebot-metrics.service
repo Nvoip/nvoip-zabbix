@@ -1,0 +1,11 @@
+[Unit]
+Description=NN-6660 aggregate Voicebot Flow and Redis metrics
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0022
+TimeoutStartSec=20
+ExecStart=/bin/sh -c '/usr/bin/python3 /etc/nvoip/monitoring/ura_voicebot_metrics.py > /var/lib/nvoip-zabbix/ura_voicebot.metrics.tmp && /bin/mv -f /var/lib/nvoip-zabbix/ura_voicebot.metrics.tmp /var/lib/nvoip-zabbix/ura_voicebot.metrics'
