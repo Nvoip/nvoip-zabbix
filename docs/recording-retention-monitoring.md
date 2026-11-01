@@ -17,6 +17,8 @@ No host `Servidor Cronjobs`, o template
   `deletion_enabled=true` da flag legada.
 
 O item de log não aceita linhas com conta, e-mail, objeto, versão ou destinatário.
+Os itens usam o modo `skip`: a publicação começa no fim do arquivo e não
+reprocessa o histórico como se fossem eventos atuais.
 O CRC32 existe porque o agente legado não suporta `vfs.file.cksum[...,sha256]`;
 o SHA-256 do recibo de deploy continua sendo a fonte de verdade.
 

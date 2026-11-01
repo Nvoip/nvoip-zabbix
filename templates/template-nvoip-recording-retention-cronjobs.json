@@ -23,7 +23,7 @@
             "uuid": "3734d0b00ac4492f9c6f164c1804433d",
             "name": "Recording retention CronJobs: aggregate cycle summary",
             "type": "ZABBIX_ACTIVE",
-            "key": "log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} account_recording_retention selected=[0-9]+ held=[0-9]+ warned=[0-9]+ completed=[0-9]+ empty=[0-9]+ deferred=[0-9]+ deletion_blocked=[0-9]+ delivery_blocked=[0-9]+ failed=[0-9]+ deletion_enabled=(true|false) dry_run=(true|false)$\",,,all]",
+            "key": "log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} account_recording_retention selected=[0-9]+ held=[0-9]+ warned=[0-9]+ completed=[0-9]+ empty=[0-9]+ deferred=[0-9]+ deletion_blocked=[0-9]+ delivery_blocked=[0-9]+ failed=[0-9]+ deletion_enabled=(true|false) dry_run=(true|false)$\",,,skip]",
             "delay": "10s",
             "history": "90d",
             "value_type": "LOG",
@@ -36,7 +36,7 @@
             "triggers": [
               {
                 "uuid": "3bfeffec79f04090bd50e0a30b486cd6",
-                "expression": "nodata(/Template Nvoip Recording Retention CronJobs/log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} account_recording_retention selected=[0-9]+ held=[0-9]+ warned=[0-9]+ completed=[0-9]+ empty=[0-9]+ deferred=[0-9]+ deletion_blocked=[0-9]+ delivery_blocked=[0-9]+ failed=[0-9]+ deletion_enabled=(true|false) dry_run=(true|false)$\",,,all],26h)=1",
+                "expression": "nodata(/Template Nvoip Recording Retention CronJobs/log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} account_recording_retention selected=[0-9]+ held=[0-9]+ warned=[0-9]+ completed=[0-9]+ empty=[0-9]+ deferred=[0-9]+ deletion_blocked=[0-9]+ delivery_blocked=[0-9]+ failed=[0-9]+ deletion_enabled=(true|false) dry_run=(true|false)$\",,,skip],26h)=1",
                 "name": "Recording retention daily cycle has no completed summary",
                 "priority": "HIGH",
                 "description": "No aggregate completion was observed for 26 hours. Check the lock, process and helper; do not start a second cycle while the first is uncertain.",
@@ -44,7 +44,7 @@
               },
               {
                 "uuid": "acd1495d80624b6ea903dafbe2694f0b",
-                "expression": "find(/Template Nvoip Recording Retention CronJobs/log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} account_recording_retention selected=[0-9]+ held=[0-9]+ warned=[0-9]+ completed=[0-9]+ empty=[0-9]+ deferred=[0-9]+ deletion_blocked=[0-9]+ delivery_blocked=[0-9]+ failed=[0-9]+ deletion_enabled=(true|false) dry_run=(true|false)$\",,,all],,\"regexp\",\" failed=[1-9][0-9]* \")=1",
+                "expression": "find(/Template Nvoip Recording Retention CronJobs/log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} account_recording_retention selected=[0-9]+ held=[0-9]+ warned=[0-9]+ completed=[0-9]+ empty=[0-9]+ deferred=[0-9]+ deletion_blocked=[0-9]+ delivery_blocked=[0-9]+ failed=[0-9]+ deletion_enabled=(true|false) dry_run=(true|false)$\",,,skip],,\"regexp\",\" failed=[1-9][0-9]* \")=1",
                 "name": "Recording retention daily cycle reported failures",
                 "priority": "HIGH",
                 "description": "The aggregate cycle reported failed>0. Investigate without exporting account identifiers and do not force retries while outcome is uncertain.",
@@ -53,7 +53,7 @@
               },
               {
                 "uuid": "64cc3ae6d3694908b3442d55f249c594",
-                "expression": "find(/Template Nvoip Recording Retention CronJobs/log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} account_recording_retention selected=[0-9]+ held=[0-9]+ warned=[0-9]+ completed=[0-9]+ empty=[0-9]+ deferred=[0-9]+ deletion_blocked=[0-9]+ delivery_blocked=[0-9]+ failed=[0-9]+ deletion_enabled=(true|false) dry_run=(true|false)$\",,,all],,\"like\",\"deletion_enabled=true\")=1",
+                "expression": "find(/Template Nvoip Recording Retention CronJobs/log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} account_recording_retention selected=[0-9]+ held=[0-9]+ warned=[0-9]+ completed=[0-9]+ empty=[0-9]+ deferred=[0-9]+ deletion_blocked=[0-9]+ delivery_blocked=[0-9]+ failed=[0-9]+ deletion_enabled=(true|false) dry_run=(true|false)$\",,,skip],,\"like\",\"deletion_enabled=true\")=1",
                 "name": "CRITICAL: legacy cancelled-recording deletion flag is enabled",
                 "priority": "DISASTER",
                 "description": "NVOIP_CANCELLED_RECORDING_DELETE_ENABLED must remain absent/false. This is distinct from the Backend exact-version flow. Contain and reconcile before any further CronJobs run.",
@@ -66,7 +66,7 @@
             "uuid": "f9172bf77b304612b338ca9705c7d9c5",
             "name": "Recording retention CronJobs: retention-only marker",
             "type": "ZABBIX_ACTIVE",
-            "key": "log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} s3_lgpd skipped reason=retention_only$\",,,all]",
+            "key": "log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} s3_lgpd skipped reason=retention_only$\",,,skip]",
             "delay": "10s",
             "history": "30d",
             "value_type": "LOG",
@@ -75,7 +75,7 @@
             "triggers": [
               {
                 "uuid": "1b750079ff054a95b5264b4e1504e927",
-                "expression": "nodata(/Template Nvoip Recording Retention CronJobs/log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} s3_lgpd skipped reason=retention_only$\",,,all],26h)=1",
+                "expression": "nodata(/Template Nvoip Recording Retention CronJobs/log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} s3_lgpd skipped reason=retention_only$\",,,skip],26h)=1",
                 "name": "Recording retention cycle did not prove retention-only isolation",
                 "priority": "DISASTER",
                 "description": "The daily run did not emit the retention_only marker. Validate the root cron command before another execution; do not assume deleted-account cleanup stayed isolated.",
