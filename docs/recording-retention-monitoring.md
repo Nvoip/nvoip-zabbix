@@ -62,9 +62,10 @@ e-mail, chama cliente, altera banco ou apaga objeto.
    read-only `nvoip`.
 4. Confirme que o item ODBC mestre retorna um array JSON com uma linha e que
    todos os dependentes ficam suportados.
-5. Confirme no CronJobs que os itens ativos chegam pelo hostname exato
-   `Servidor Cronjobs`. Não altere permissões: o log e o Lua já são legíveis
-   pelo usuário `zabbix`.
+5. Use checks passivos para o CronJobs. O `Server` do agente deve aceitar o IP
+   privado do Zabbix já usado pela rede interna; não abra `10051`, não amplie SG
+   e não altere permissões: o log e o Lua já são legíveis pelo usuário
+   `zabbix`.
 6. Revise as ações internas associadas às severidades. Não faça SMS, WhatsApp,
    ligação ou e-mail de teste para cliente.
 
@@ -95,4 +96,5 @@ segundos no schema `desenvolvimento`.
 Desvincule somente os dois templates dos respectivos hosts, preservando o
 histórico se necessário. Se a importação atualizou um objeto preexistente,
 restaure o export feito imediatamente antes da publicação. Não remova o DSN,
-não altere o agente e não mude permissões de log como parte do rollback.
+remova somente o IP privado acrescentado a `Server` no agente do CronJobs e não
+mude permissões de log como parte do rollback.

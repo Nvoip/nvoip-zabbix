@@ -26,8 +26,13 @@ class RecordingRetentionCronJobsTemplateTest(unittest.TestCase):
         self.assertIsNotNone(pattern.fullmatch(safe))
         self.assertIsNone(pattern.fullmatch("Sun Nov  1 11:55:00 2026 account=123 recording_retention=failed"))
         self.assertIsNone(pattern.fullmatch(safe + " recipient=someone@example.com"))
-        self.assertEqual("ZABBIX_ACTIVE", summary["type"])
+        self.assertEqual("ZABBIX", summary["type"])
         self.assertTrue(summary["key"].endswith(",,,all]"))
+
+    def test_all_items_use_passive_agent_checks(self):
+        self.assertTrue(self.template["items"])
+        for item in self.template["items"]:
+            self.assertEqual("ZABBIX", item["type"])
 
     def test_checks_isolation_runtime_and_process_safety(self):
         keys = {item["key"] for item in self.template["items"]}
