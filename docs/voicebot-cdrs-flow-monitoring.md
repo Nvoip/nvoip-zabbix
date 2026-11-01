@@ -34,12 +34,15 @@ e `updated_epoch` envelhece. O agente lê o arquivo com `vfs.file.regexp[]`;
 nenhuma credencial é dada ao usuário `zabbix`.
 
 Na URA, [`../Scripts/ura_voicebot_metrics.py`](../Scripts/ura_voicebot_metrics.py)
-foi instalado em `/etc/nvoip/monitoring/ura_voicebot_metrics.py` com o novo
-`/etc/cron.d/nn6660-ura-voicebot-metrics`. Publica somente contagens de
+foi instalado em `/etc/nvoip/monitoring/ura_voicebot_metrics.py` com os novos
+[`../deploy/systemd/nvoip-ura-voicebot-metrics.service`](../deploy/systemd/nvoip-ura-voicebot-metrics.service)
+e [`../deploy/systemd/nvoip-ura-voicebot-metrics.timer`](../deploy/systemd/nvoip-ura-voicebot-metrics.timer).
+O `cron` geral desse host estava inativo; o timer próprio foi habilitado e o
+serviço oneshot executou com `Result=success`. Publica somente contagens de
 `FLOW_QUEUE_FAILURE_FALLBACK_FAILED`, `TRIGGER_NOT_FOUND`,
 `ASSET_SOURCE_UNAVAILABLE` e `snapshot_missing` em janela de 10 min, além dos
 contadores `evicted_keys`, `rejected_connections`, `redis_ping` e
-`updated_epoch` em `/var/lib/nvoip-zabbix/ura_voicebot.metrics`. O cron root
+`updated_epoch` em `/var/lib/nvoip-zabbix/ura_voicebot.metrics`. O serviço root
 lê o journal sem mudar as permissões dos logs; o agente lê apenas números.
 Uma janela de 10 min com coleta a cada 5 min evita perder eventos entre ciclos.
 
@@ -72,8 +75,9 @@ recuperação com um teste controlado que não crie efeito em cliente.
 
 ## Contenção e rollback
 
-Desabilitar somente os itens/gatilhos NN-6660, remover o novo arquivo cron e
-o script, preservando o arquivo de métricas e histórico de eventos para
+Desabilitar somente os itens/gatilhos NN-6660, remover o novo cron do CronJobs,
+desabilitar o novo timer da URA e remover os scripts, preservando os arquivos
+de métricas e o histórico de eventos para
 diagnóstico. Se a rota ativa falhar, restaurar o backup exato da configuração
 do agente e reiniciar somente `zabbix-agent`. Não reiniciar FreeSWITCH, Flow,
 Redis ou o sincronizador, nem alterar banco, SG ou permissões existentes para
