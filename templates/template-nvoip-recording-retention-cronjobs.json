@@ -104,7 +104,7 @@
                 "expression": "nodata(/Template Nvoip Recording Retention CronJobs/log[{$NVOIP.RETENTION.LOG},\"^[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]{1,2} [0-9:]{8} [0-9]{4} s3_lgpd selected=[0-9]+ held=[0-9]+ completed=[0-9]+ failed=[0-9]+ prefix_pages=[0-9]+ prefix_objects=[0-9]+ legacy_objects=[0-9]+ ura_objects=[0-9]+ dry_run=false pending_ambiguous=[0-9]+ deferred=[0-9]+ attempted=[0-9]+ elapsed_s=[0-9]+ budget_s=[0-9]+ max_accounts=[0-9]+ stop=[a-z_]+ rechecked=[0-9]+ recheck_deferred=[0-9]+ shared_checked=[0-9]+ shared_released=[0-9]+ shared_objects=[0-9]+ recheck_days=[0-9]+$\",,,skip],26h)=1",
                 "name": "LGPD recording cleanup has no real cycle summary",
                 "priority": "HIGH",
-                "description": "No real s3_lgpd summary for 26 hours. flock -n skips the 22:30 run without logging while the 04:00 retention run holds the shared lock, and a cron line with --dry-run stops producing this line too. Check the lock, the process and the root cron line; do not start a second cycle.",
+                "description": "No real s3_lgpd summary for 26 hours. flock -n skips the 22:30 run without logging while a previous --lgpd-only run still holds its own lock (s3_delete_recordings-v3-lgpd.lock), and a cron line with --dry-run stops producing this line too. Check the lock, the process and the root cron line; do not start a second cycle.",
                 "tags": [{ "tag": "jira", "value": "NN-6673" }]
               },
               {

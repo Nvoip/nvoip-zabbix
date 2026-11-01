@@ -121,10 +121,11 @@ publicar também o abre. O valor do template só vale para o SHA-256 da sua desc
 - **worker longo/duplicado:** identificar o dono do `flock`, processo filho e
   última linha agregada. Não iniciar segundo ciclo e não matar processo sem
   entender se existe efeito externo incerto.
-- **limpeza LGPD sem resumo:** ver se a retenção das 04:00 ainda segura o lock
-  compartilhado (`flock -n` pula a linha das 22:30 sem registrar nada) e conferir no
-  crontab root se a linha `--lgpd-only` existe e está sem `--dry-run`. A fila espera a
-  execução seguinte; não iniciar segundo ciclo.
+- **limpeza LGPD sem resumo:** a linha `--lgpd-only` das 22:30 tem lock próprio
+  (`/etc/nvoip/lockfiles/s3_delete_recordings-v3-lgpd.lock`), separado do lock da
+  retenção das 04:00. Ver se uma execução anterior ainda segura esse lock (`flock -n`
+  pula sem registrar nada) e conferir no crontab root se a linha existe e está sem
+  `--dry-run`. A fila espera a execução seguinte; não iniciar segundo ciclo.
 - **limpeza LGPD com falha:** ler as linhas `s3_cleanup=failed` no log, sem exportar
   conta. O estado local e os lotes já concluídos são preservados; a próxima execução
   retoma sozinha.
