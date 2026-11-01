@@ -9,24 +9,6 @@ import sys
 import time
 
 
-def command(args):
-    return subprocess.run(
-        args, check=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-        timeout=12, universal_newlines=True,
-    ).stdout
-
-
-def journal_command(args):
-    result = subprocess.run(
-        args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        timeout=12, universal_newlines=True,
-    )
-    # journalctl --grep returns 1 when no line matches.
-    if result.returncode not in (0, 1) or result.stderr:
-        raise ValueError("journal query failed")
-    return result.stdout
-
-
 def main():
     patterns = {
         "fallback_failed_10m": "FLOW_QUEUE_FAILURE_FALLBACK_FAILED",
@@ -34,12 +16,26 @@ def main():
         "asset_unavailable_10m": "ASSET_SOURCE_UNAVAILABLE",
         "snapshot_missing_10m": "snapshot_missing",
     }
-    journal = journal_command([
+    journal_result = subprocess.run([
         "journalctl", "-u", "freeswitch", "--since", "-10 min",
-        "--grep", "|".join(patterns.values()), "-o", "cat", "--no-pager",
-    ])
-    stats = command(["redis-cli", "--raw", "INFO", "stats"])
-    ping = command(["redis-cli", "--raw", "PING"]).strip()
+        "--grep", "FLOW_QUEUE_FAILURE_FALLBACK_FAILED|TRIGGER_NOT_FOUND|ASSET_SOURCE_UNAVAILABLE|snapshot_missing",
+        "-o", "cat", "--no-pager",
+    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        timeout=12, universal_newlines=True)
+    # journalctl --grep returns 1 when no line matches.
+    if journal_result.returncode not in (0, 1) or journal_result.stderr:
+        raise ValueError("journal query failed")
+    journal = journal_result.stdout
+    stats = subprocess.run(
+        ["redis-cli", "--raw", "INFO", "stats"], check=True,
+        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        timeout=12, universal_newlines=True,
+    ).stdout
+    ping = subprocess.run(
+        ["redis-cli", "--raw", "PING"], check=True,
+        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        timeout=12, universal_newlines=True,
+    ).stdout.strip()
     parsed = {}
     for line in stats.splitlines():
         if ":" in line:
