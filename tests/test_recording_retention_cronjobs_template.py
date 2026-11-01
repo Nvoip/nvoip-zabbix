@@ -27,7 +27,7 @@ class RecordingRetentionCronJobsTemplateTest(unittest.TestCase):
         self.assertIsNone(pattern.fullmatch("Sun Nov  1 11:55:00 2026 account=123 recording_retention=failed"))
         self.assertIsNone(pattern.fullmatch(safe + " recipient=someone@example.com"))
         self.assertEqual("ZABBIX_ACTIVE", summary["type"])
-        self.assertTrue(summary["key"].endswith(",,,all]"))
+        self.assertTrue(summary["key"].endswith(",,,skip]"))
 
     def test_log_items_are_active_and_numeric_items_are_passive(self):
         log_items = [item for item in self.template["items"] if item["key"].startswith("log[")]
@@ -48,6 +48,7 @@ class RecordingRetentionCronJobsTemplateTest(unittest.TestCase):
         )
         isolation = self.items["Recording retention CronJobs: retention-only marker"]
         self.assertIn("s3_lgpd skipped reason=retention_only", isolation["key"])
+        self.assertTrue(isolation["key"].endswith(",,,skip]"))
 
     def test_has_critical_trigger_for_legacy_flag_and_duplicate_worker(self):
         triggers = [
