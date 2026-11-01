@@ -104,6 +104,7 @@ including:
 - [Aurora lock guard](docs/database-lock-monitoring.md);
 - [API host and Tomcat JVM memory monitor](docs/api-jvm-memory-monitoring.md);
 - [API key lazy-creation monitor](docs/grafana/api-key-lazy-creation-monitor.md).
+- [Voicebot and cdrs_flow operational monitor](docs/voicebot-cdrs-flow-monitoring.md).
 
 These operational templates are independent from the public Nvoip notification
 media type.
