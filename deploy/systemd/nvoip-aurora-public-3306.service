@@ -1,0 +1,10 @@
+[Unit]
+Description=NN-6738 check public Aurora 3306 ingress rules
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=zabbix
+Group=zabbix
+TimeoutStartSec=45
+ExecStart=/usr/bin/python3 /etc/nvoip/monitoring/aurora_public_3306_check.py

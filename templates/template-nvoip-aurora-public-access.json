@@ -1,0 +1,119 @@
+{
+  "zabbix_export": {
+    "version": "7.0",
+    "template_groups": [
+      {
+        "uuid": "7b6b1b283c3a49a79a1582948c2cfbac",
+        "name": "Templates/Databases"
+      }
+    ],
+    "templates": [
+      {
+        "uuid": "4660c8b8ed7b4d01ad39c63768d289b3",
+        "template": "Template Nvoip Aurora Public Access",
+        "name": "Template Nvoip Aurora Public Access",
+        "description": "NN-6738: alerta quando uma regra de origem pública alcança a porta do Aurora. Os valores vêm do coletor aurora_public_3306_check.py, que só lê a AWS. Nenhum trigger altera grupo de segurança.",
+        "groups": [
+          {
+            "name": "Templates/Databases"
+          }
+        ],
+        "items": [
+          {
+            "uuid": "c83c040bcbb94bfbb0b1e0123b9def5c",
+            "name": "Aurora: regras públicas na porta do banco",
+            "type": "TRAP",
+            "key": "nvoip.aurora.public3306.count",
+            "delay": "0",
+            "history": "90d",
+            "trends": "365d",
+            "value_type": "UNSIGNED",
+            "allowed_hosts": "127.0.0.1",
+            "description": "Quantidade de origens fora da VPC que alcançam a porta do Aurora, inclusive por regra de todas as portas, IPv6 ou prefix list.",
+            "tags": [
+              {
+                "tag": "component",
+                "value": "aurora"
+              },
+              {
+                "tag": "scope",
+                "value": "security"
+              }
+            ],
+            "triggers": [
+              {
+                "uuid": "24dbe7b4a6cf4bb9a75f2f853f965c51",
+                "expression": "last(/Template Nvoip Aurora Public Access/nvoip.aurora.public3306.count)>0",
+                "name": "Aurora com regra pública na porta do banco: {ITEM.LASTVALUE1}",
+                "priority": "HIGH",
+                "description": "Alguém recolocou uma regra pública. Confira a origem no item de detalhe e no CloudTrail antes de remover. Decisão de 02/11/2026: acesso externo fechado, só VPN e servidores internos (NN-6738).",
+                "tags": [
+                  {
+                    "tag": "scope",
+                    "value": "security"
+                  }
+                ]
+              },
+              {
+                "uuid": "d61e19ea8d704f0190b91bdbc89cd473",
+                "expression": "nodata(/Template Nvoip Aurora Public Access/nvoip.aurora.public3306.count,{$NVOIP.AURORA.PUBLIC.NODATA})=1",
+                "name": "Coletor das regras públicas do Aurora sem dados",
+                "priority": "AVERAGE",
+                "description": "Sem dados, uma regra pública passaria despercebida. Confira o timer nvoip-aurora-public-3306 no host do Zabbix e a permissão de leitura do papel IAM.",
+                "tags": [
+                  {
+                    "tag": "scope",
+                    "value": "monitoring"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "uuid": "6d77e203b4bc46f4826a3fcbbc79db77",
+            "name": "Aurora: detalhe das regras públicas",
+            "type": "TRAP",
+            "key": "nvoip.aurora.public3306.detail",
+            "delay": "0",
+            "history": "90d",
+            "trends": "0",
+            "value_type": "TEXT",
+            "allowed_hosts": "127.0.0.1",
+            "description": "Grupo e origem de cada regra pública encontrada.",
+            "tags": [
+              {
+                "tag": "component",
+                "value": "aurora"
+              }
+            ]
+          },
+          {
+            "uuid": "7475cb00594a460fa8ee0906cec95d7d",
+            "name": "Aurora: instância com IP público",
+            "type": "TRAP",
+            "key": "nvoip.aurora.public3306.publicly_accessible",
+            "delay": "0",
+            "history": "90d",
+            "trends": "365d",
+            "value_type": "UNSIGNED",
+            "allowed_hosts": "127.0.0.1",
+            "description": "Só informativo. PubliclyAccessible=1 foi mantido por decisão de Leandro em 02/11/2026; sem trigger.",
+            "tags": [
+              {
+                "tag": "component",
+                "value": "aurora"
+              }
+            ]
+          }
+        ],
+        "macros": [
+          {
+            "macro": "{$NVOIP.AURORA.PUBLIC.NODATA}",
+            "value": "30m",
+            "description": "Tempo sem coleta até abrir o alerta do coletor."
+          }
+        ]
+      }
+    ]
+  }
+}
