@@ -1,0 +1,10 @@
+[Unit]
+Description=NN-6738 run the public Aurora 3306 check every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
