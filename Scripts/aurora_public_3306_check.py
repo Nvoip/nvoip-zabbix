@@ -9,35 +9,43 @@ import argparse
 import datetime
 import hashlib
 import hmac
+import http.client
 import ipaddress
 import json
 import socket
 import struct
 import sys
 import urllib.parse
-import urllib.request
 import xml.etree.ElementTree as ET
 
-IMDS = "http://169.254.169.254/latest"
+IMDS_HOST = "169.254.169.254"
 PRIVATE_NETWORK = ipaddress.ip_network("172.31.0.0/16")
 ITEM_PREFIX = "nvoip.aurora.public3306"
 
 
+def read_response(connection, method, path, body=None, headers=None):
+    connection.request(method, path, body=body, headers=headers or {})
+    response = connection.getresponse()
+    data = response.read()
+    if response.status != 200:
+        raise RuntimeError(f"{connection.host} respondeu {response.status}")
+    return data
+
+
 def imds_credentials():
-    token_request = urllib.request.Request(
-        IMDS + "/api/token",
-        method="PUT",
+    # O serviço de metadados só existe em HTTP, no endereço local da instância.
+    connection = http.client.HTTPConnection(IMDS_HOST, timeout=3)
+    token = read_response(
+        connection, "PUT", "/latest/api/token",
         headers={"X-aws-ec2-metadata-token-ttl-seconds": "300"},
-    )
-    token = urllib.request.urlopen(token_request, timeout=3).read().decode()
+    ).decode()
     headers = {"X-aws-ec2-metadata-token": token}
 
     def get(path):
-        request = urllib.request.Request(IMDS + path, headers=headers)
-        return urllib.request.urlopen(request, timeout=3).read().decode()
+        return read_response(connection, "GET", "/latest/meta-data/iam/security-credentials/" + path, headers=headers).decode()
 
-    role = get("/meta-data/iam/security-credentials/").strip()
-    return json.loads(get("/meta-data/iam/security-credentials/" + role))
+    role = get("").strip()
+    return json.loads(get(role))
 
 
 def _sign(key, message):
@@ -69,9 +77,8 @@ def aws_query(service, region, params, credentials):
     for part in (region, service, "aws4_request"):
         key = _sign(key, part)
     signature = hmac.new(key, to_sign.encode(), hashlib.sha256).hexdigest()
-    request = urllib.request.Request(
-        f"https://{host}/",
-        data=body.encode(),
+    data = read_response(
+        http.client.HTTPSConnection(host, timeout=10), "POST", "/", body=body.encode(),
         headers={
             "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
             "X-Amz-Date": amz_date,
@@ -82,7 +89,10 @@ def aws_query(service, region, params, credentials):
             ),
         },
     )
-    root = ET.fromstring(urllib.request.urlopen(request, timeout=10).read())
+    # A resposta vem da AWS por TLS verificado. A API não usa DOCTYPE nem entidades.
+    if b"<!DOCTYPE" in data or b"<!ENTITY" in data:
+        raise RuntimeError("resposta da AWS com DTD recusada")
+    root = ET.fromstring(data)  # nosemgrep: python.lang.security.use-defused-xml.use-defused-xml
     for element in root.iter():
         element.tag = element.tag.rsplit("}", 1)[-1]
     return root
