@@ -80,7 +80,8 @@ def aws_query(service, region, params, credentials):
         key = _sign(key, part)
     signature = hmac.new(key, to_sign.encode(), hashlib.sha256).hexdigest()
     data = read_response(
-        http.client.HTTPSConnection(host, timeout=10, context=ssl.create_default_context()),
+        # O contexto padrão valida certificado e nome do host.
+        http.client.HTTPSConnection(host, timeout=10, context=ssl.create_default_context()),  # nosemgrep: python.lang.security.audit.httpsconnection-detected.httpsconnection-detected
         "POST", "/", body=body.encode(),
         headers={
             "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
