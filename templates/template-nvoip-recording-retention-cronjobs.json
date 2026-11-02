@@ -179,7 +179,7 @@
               },
               {
                 "uuid": "54c1def08241434b8c2d9f35ccb23600",
-                "expression": "last(/Template Nvoip Recording Retention CronJobs/proc.num[lua,root,,s3_delete_recordings-v3.lua --retention-only])>0 and (time()>070000 or time()<035900)",
+                "expression": "last(/Template Nvoip Recording Retention CronJobs/proc.num[lua,root,,s3_delete_recordings-v3.lua --retention-only])>0 and (time()>100000 or time()<065900)",
                 "name": "Recording retention worker is running outside the expected 04:00-07:00 window",
                 "priority": "HIGH",
                 "description": "The daily cycle is still active outside its normal window. Inspect the current helper and lock; never start a second cycle to test recovery.",

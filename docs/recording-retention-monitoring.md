@@ -53,7 +53,8 @@ A consulta não retorna `id_astpp`, Numbersip, usuário, e-mail, chave S3,
 - vazão: desastre acima de seis exclusões confirmadas em uma janela de cinco
   minutos, incompatível com o envelope produtivo batch 1 / ciclo de um minuto;
 - worker CronJobs: alto quando ainda roda depois das 07:00 ou antes das 03:59,
-  desastre se houver mais de um processo;
+  desastre se houver mais de um processo. `time()` usa o relógio do servidor
+  Zabbix, em UTC: por isso a expressão traz 10:00 e 06:59;
 - resumo/marcador diário: alerta após 26 horas sem nova amostra;
 - limpeza LGPD: alto após 26 horas sem resumo real e com `failed>0`. A simulação
   (`dry_run=true`) não conta como execução: um `--dry-run` deixado no cron também
