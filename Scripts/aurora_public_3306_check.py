@@ -13,10 +13,12 @@ import http.client
 import ipaddress
 import json
 import socket
+import ssl
 import struct
 import sys
 import urllib.parse
-import xml.etree.ElementTree as ET
+# Só lê respostas da AWS por TLS verificado, e aws_query recusa DTD antes do parse.
+import xml.etree.ElementTree as ET  # nosemgrep: python.lang.security.use-defused-xml.use-defused-xml
 
 IMDS_HOST = "169.254.169.254"
 PRIVATE_NETWORK = ipaddress.ip_network("172.31.0.0/16")
@@ -78,7 +80,8 @@ def aws_query(service, region, params, credentials):
         key = _sign(key, part)
     signature = hmac.new(key, to_sign.encode(), hashlib.sha256).hexdigest()
     data = read_response(
-        http.client.HTTPSConnection(host, timeout=10), "POST", "/", body=body.encode(),
+        http.client.HTTPSConnection(host, timeout=10, context=ssl.create_default_context()),
+        "POST", "/", body=body.encode(),
         headers={
             "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
             "X-Amz-Date": amz_date,
@@ -89,10 +92,10 @@ def aws_query(service, region, params, credentials):
             ),
         },
     )
-    # A resposta vem da AWS por TLS verificado. A API não usa DOCTYPE nem entidades.
+    # A API da AWS não usa DOCTYPE nem entidades.
     if b"<!DOCTYPE" in data or b"<!ENTITY" in data:
         raise RuntimeError("resposta da AWS com DTD recusada")
-    root = ET.fromstring(data)  # nosemgrep: python.lang.security.use-defused-xml.use-defused-xml
+    root = ET.fromstring(data)
     for element in root.iter():
         element.tag = element.tag.rsplit("}", 1)[-1]
     return root
