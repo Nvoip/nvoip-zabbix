@@ -127,7 +127,7 @@ class RecordingRetentionCronJobsTemplateTest(unittest.TestCase):
 
     def test_crc_macro_matches_the_current_legacy_agent_contract(self):
         macros = {entry["macro"]: entry["value"] for entry in self.template["macros"]}
-        self.assertEqual("3046723097", macros["{$NVOIP.RETENTION.SCRIPT.CRC32}"])
+        self.assertEqual("3920438888", macros["{$NVOIP.RETENTION.SCRIPT.CRC32}"])
         self.assertEqual(
             "/etc/nvoip/maintenance/s3_delete_recordings-v3.lua",
             macros["{$NVOIP.RETENTION.SCRIPT}"],
