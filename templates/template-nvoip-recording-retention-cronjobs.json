@@ -191,7 +191,7 @@
         "macros": [
           { "macro": "{$NVOIP.RETENTION.LOG}", "value": "/etc/nvoip/logs/s3_delete_recordings-v3.log", "description": "World-readable aggregate/runtime log already used by the 04:00 root cron." },
           { "macro": "{$NVOIP.RETENTION.SCRIPT}", "value": "/etc/nvoip/maintenance/s3_delete_recordings-v3.lua", "description": "Published NN-2350/NN-4830 Lua runtime." },
-          { "macro": "{$NVOIP.RETENTION.SCRIPT.CRC32}", "value": "1552127806", "description": "CRC32 reported by the legacy Zabbix agent for NN-6677 SHA-256 04ac8c82da61f3ddc1ea6fc67a01d1e79c56074ff10919c3b589c8639266a0c1." }
+          { "macro": "{$NVOIP.RETENTION.SCRIPT.CRC32}", "value": "3920438888", "description": "CRC32 reported by the legacy Zabbix agent for NN-6677 SHA-256 6eefb8a85baadc7e2a7f2f461ff8c7bbb89592ef19aa2f4e1d225f1ab3ccd1cf." }
         ],
         "tags": [
           { "tag": "jira", "value": "NN-2350" },
