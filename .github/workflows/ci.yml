@@ -7,6 +7,9 @@ on:
       - main
       - master
 
+permissions:
+  contents: read
+
 jobs:
   traceability:
     if: github.event_name == 'pull_request'
@@ -14,6 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Require Jira key in every commit
         env:
@@ -31,6 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Validate shell syntax
         run: for script in Scripts/*.sh; do sh -n "$script" || exit; done
       - name: Validate monitoring templates
