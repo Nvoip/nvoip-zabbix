@@ -39,5 +39,5 @@ jobs:
           persist-credentials: false
       - name: Validate shell syntax
         run: for script in Scripts/*.sh; do sh -n "$script" || exit; done
-      - name: Validate monitoring templates
+      - name: Validate media type and scripts
         run: python3 -m unittest discover -s tests -p 'test_*.py'

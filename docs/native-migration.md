@@ -75,8 +75,9 @@ como segredo OAuth. Respostas/erros não imprimem o token nem o corpo do
 provedor. Redirecionamentos são recusados. Atualizar arquivos não configura
 as actions ou credenciais das instalações: siga o backup e o aceite acima.
 
-Na instalação interna, o ponto de entrada existente `send_sms_nvoip.sh` recebe
-este wrapper. A configuração protegida `/etc/zabbix/nvoip-oauth.env` seleciona
+Numa instalação que já tenha um ponto de entrada próprio para SMS, ele pode
+chamar este wrapper. A configuração protegida (por exemplo, um arquivo `.env`
+legível só pelo usuário do Zabbix) seleciona
 `NVOIP_SMS_TEMPLATE_LAYOUT=zabbix` e os três IDs de templates aprovados. O
 quarto parâmetro do media type contém nove campos separados por TAB: nome do
 evento, host, severidade, ID, data/hora do problema, EVENT.VALUE,
