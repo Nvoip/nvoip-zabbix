@@ -98,16 +98,9 @@ The native SMS webhook checks the API response as well as the HTTP status.
 An HTTP 200 containing an SMS rejection is a failure. API acceptance does not
 confirm delivery to the recipient's phone.
 
-This repository also contains Nvoip-specific operational monitoring templates,
-including:
-
-- [Aurora lock guard](docs/database-lock-monitoring.md);
-- [API host and Tomcat JVM memory monitor](docs/api-jvm-memory-monitoring.md);
-- [API key lazy-creation monitor](docs/grafana/api-key-lazy-creation-monitor.md).
-- [Voicebot and cdrs_flow operational monitor](docs/voicebot-cdrs-flow-monitoring.md).
-
-These operational templates are independent from the public Nvoip notification
-media type.
+This repository contains only the public Nvoip notification media type for
+Zabbix and its scripts. Nvoip's internal operational monitoring is maintained
+separately.
 
 ## Support and feedback
 
